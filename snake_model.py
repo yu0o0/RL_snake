@@ -31,10 +31,10 @@ class SnakeCNN(torch.nn.Module):
 
         output = self.C1(feature_input)
         output = torch.flatten(output, 1)
-        # output=self.dense1(output)
-        # output=self.nonlin1(output)
-        # output=self.dense2(output)
-        # output=self.softmax1(output)
+        output=self.dense1(output)
+        output=self.nonlin1(output)
+        output=self.dense2(output)
+        output=self.softmax1(output)
 
         return output
 

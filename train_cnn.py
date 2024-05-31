@@ -33,16 +33,11 @@ def main():
         while not done:
             plt.imshow(obs, interpolation='nearest')
             plt.show()
-            action = env.action_space.sample()
-            # action = action_list[i]
-            i = (i + 1) % len(action_list)
+            action = policy.choose_action(obs)
             obs, reward, done, info = env.step(action)
-            sum_reward += reward
-            if np.absolute(reward) > 0.001:
-                print(reward)
-            env.render()
             
-            time.sleep(RENDER_DELAY)
+            sum_reward += reward
+            
         # print(info["snake_length"])
         # print(info["food_pos"])
         # print(obs)
