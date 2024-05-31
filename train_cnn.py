@@ -6,35 +6,6 @@ import torch
 from snake_model import SnakeCNN
 from snake_env import SnakeEnv
 
-if torch.backends.mps.is_available():
-    NUM_ENV = 32 * 2
-else:
-    NUM_ENV = 32
-LOG_DIR = "logs"
-
-os.makedirs(LOG_DIR, exist_ok=True)
-
-# Linear scheduler
-def linear_schedule(initial_value, final_value=0.0):
-
-    if isinstance(initial_value, str):
-        initial_value = float(initial_value)
-        final_value = float(final_value)
-        assert (initial_value > 0.0)
-
-    def scheduler(progress):
-        return final_value + progress * (initial_value - final_value)
-
-    return scheduler
-
-def make_env(seed=0):
-    def _init():
-        env = SnakeEnv(seed=seed)
-        env = ActionMasker(env, SnakeEnv.get_action_mask)
-        env = Monitor(env)
-        env.seed(seed)
-        return env
-    return _init
 
 def main():
     NUM_EPISODES = 100
