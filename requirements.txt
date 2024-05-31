@@ -11,7 +11,7 @@ fonttools==4.51.0
 fsspec==2024.3.1
 gym==0.22.0
 gym-notices==0.0.8
-gymnasium==0.29.1
+gymnasium
 idna==3.7
 imageio==2.34.1
 imageio-ffmpeg==0.4.9
@@ -35,9 +35,9 @@ python-dateutil==2.9.0.post0
 pytz==2024.1
 requests==2.31.0
 sb3_contrib==2.3.0
-Shimmy==2.0.0
+Shimmy
 six==1.16.0
-stable_baselines3==2.3.2
+stable_baselines3
 sympy==1.12
 tbb==2021.12.0
 torch @ file:///E:/yu0o0/python/wheel/torch-2.3.0%2Bcu121-cp311-cp311-win_amd64.whl#sha256=f7876ec20b42dd569e7a11c5af36febccc03830f63dfdedbd4026506e086cab6
