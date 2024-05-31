@@ -35,9 +35,9 @@ python-dateutil==2.9.0.post0
 pytz==2024.1
 requests==2.31.0
 sb3_contrib==2.3.0
-Shimmy==2.0.0
+Shimmy
 six==1.16.0
-stable_baselines3==2.3.2
+stable_baselines3
 sympy==1.12
 tbb==2021.12.0
 tqdm==4.66.4
