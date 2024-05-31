@@ -11,7 +11,7 @@ fonttools==4.51.0
 fsspec==2024.3.1
 gym==0.22.0
 gym-notices==0.0.8
-gymnasium==0.29.1
+gymnasium
 idna==3.7
 imageio==2.34.1
 imageio-ffmpeg==0.4.9
