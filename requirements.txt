@@ -11,7 +11,7 @@ fonttools==4.51.0
 fsspec==2024.3.1
 gym==0.22.0
 gym-notices==0.0.8
-gymnasium==0.29.1
+gymnasium
 idna==3.7
 imageio==2.34.1
 imageio-ffmpeg==0.4.9
@@ -19,3 +19,32 @@ intel-openmp==2021.4.0
 Jinja2==3.1.4
 kiwisolver==1.4.5
 MarkupSafe==2.1.5
+matplotlib==3.8.4
+mkl==2021.4.0
+moviepy==1.0.3
+mpmath==1.3.0
+networkx==3.3
+numpy==1.26.4
+packaging==24.0
+pandas==2.2.2
+pillow==10.3.0
+proglog==0.1.10
+pygame==2.5.2
+pyparsing==3.1.2
+python-dateutil==2.9.0.post0
+pytz==2024.1
+requests==2.31.0
+sb3_contrib==2.3.0
+Shimmy
+six==1.16.0
+stable_baselines3
+sympy==1.12
+tbb==2021.12.0
+torch @ file:///E:/yu0o0/python/wheel/torch-2.3.0%2Bcu121-cp311-cp311-win_amd64.whl#sha256=f7876ec20b42dd569e7a11c5af36febccc03830f63dfdedbd4026506e086cab6
+torchaudio @ file:///E:/yu0o0/python/wheel/torchaudio-2.3.0%2Bcu121-cp311-cp311-win_amd64.whl#sha256=a6881a8e1b55a9b8f80d2e23547f9ceeb49bc019fbce9a4da943c9590ad724ab
+torchvision @ file:///E:/yu0o0/python/wheel/torchvision-0.18.0%2Bcu121-cp311-cp311-win_amd64.whl#sha256=3e5557512ec9a31a6ce33a1107827427ef50ad65e88cd35012161d7392ef144b
+tqdm==4.66.4
+typing_extensions==4.11.0
+tzdata==2024.1
+urllib3==2.2.1
+
