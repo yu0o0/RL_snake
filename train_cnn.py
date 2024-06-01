@@ -36,6 +36,7 @@ def main():
             action = policy.choose_action(obs)
             obs, reward, done, info = env.step(action)
             
+            
             sum_reward += reward
             
         # print(info["snake_length"])
