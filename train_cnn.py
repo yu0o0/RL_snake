@@ -6,6 +6,49 @@ import torch
 from snake_model import SnakeCNN
 from snake_env import SnakeEnv
 
+class EpsilonGreedyPolicy:
+    '''
+    Helper class to create/manage/use epsilon-greedy policies with q
+    '''
+
+    def __init__(self, epsilon, epsilon_decay_len, actions, seed=0):
+        self.epsilon0 = epsilon
+        self.epsilon = epsilon
+        self.epsilon_decay_len = epsilon_decay_len
+        # assume number of actions same for all states
+        self.actions = list(actions)
+        self.num_actions = len(actions)
+        self.prng = random.Random()
+        self.prng.seed(seed)
+
+        # pre-compute a few things for efficiency
+        self.greedy_prob = 1.0-epsilon+epsilon/self.num_actions
+        self.rand_prob = epsilon/self.num_actions
+
+    def decay_epsilon(self, episode):
+        self.epsilon = self.epsilon0 * \
+            (self.epsilon_decay_len - episode)/self.epsilon_decay_len
+        if self.epsilon < 0:
+            self.epsilon = 0
+        self.greedy_prob = 1.0-self.epsilon+self.epsilon/self.num_actions
+        self.rand_prob = self.epsilon/self.num_actions
+
+    def choose_action(self, q_s):
+        '''
+        Given q_s=q(state), make epsilon-greedy action choice
+        '''
+        # create epsilon-greedy policy (at current state only) from q_s
+        policy = [self.rand_prob]*self.num_actions
+        with torch.no_grad():
+            greedy_action = torch.argmax(q_s)
+        policy[greedy_action] = self.greedy_prob
+
+        # choose random action based on e-greedy policy
+        action = self.prng.choices(self.actions, weights=policy)[0]
+
+        return action
+
+
 
 def main():
     NUM_EPISODES = 30000
@@ -19,18 +62,27 @@ def main():
     gamma = 0.99
     folder_name = "ex2"
     output_path = f"./result/{folder_name}"
-    
-    env = SnakeEnv(silent_mode=True)
-    policy=SnakeCNN(obsSize, numActions)
-    optimizer = torch.optim.Adam(
-        policy.parameters(), lr=lr)
     os.makedirs(output_path, exist_ok=True)
     os.makedirs(f'{output_path}/weight', exist_ok=True)
     
+    env = SnakeEnv(silent_mode=True)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    policy_net = SnakeCNN(state_size, action_size).to(device)
+    target_net = SnakeCNN(state_size, action_size).to(device)
+    target_net.load_state_dict(policy_net.state_dict())
+    target_net.eval()
+    optimizer = torch.optim.Adam(policy_net.parameters(), lr=lr)
+    
+
     best_return = -1e10
     episodeLengths = []
     episodeRewards = []
     averagedRewards = []
+
+    epsilon_decay_len = NUM_EPISODES
+    actions = list(range(numActions))
+    egp = EpsilonGreedyPolicy(1.0, epsilon_decay_len, actions, seed=0)
 
     for episode in range(NUM_EPISODES):
         if episode % 100 == 0:
@@ -40,6 +92,8 @@ def main():
         sum_reward = 0
         bootstrap_record = []
         optimizer.zero_grad()
+
+        egp.decay_epsilon(episode)
         
         step = 0
         while True:
