@@ -18,9 +18,9 @@ class SnakeCNN(torch.nn.Module):
         ]))
         
         self.dense1=torch.nn.Linear(obsSize**2*6,obsSize**2)
-        self.nonlin1=torch.nn.ReLU()
-        self.dense2=torch.nn.Linear(32,numActions)
-        self.softmax1=torch.nn.Softmax(dim=0)
+        self.nonlin1=torch.nn.Tanh()
+        self.dense2=torch.nn.Linear(obsSize**2,numActions)
+        self.softmax1=torch.nn.Softmax(dim=1)
  
     def forward(self,s):
         '''
@@ -45,13 +45,15 @@ class SnakeCNN(torch.nn.Module):
         Returns chosen action, and optionally the computed PG log pi term
         '''
         pi_s = self.forward(s)
+        # print(pi_s)
         prob_model = torch.distributions.Categorical(pi_s)
         action = prob_model.sample()   #sample an action from current policy probabilities
+        # print(action)
         
         if not returnLogpi:
             return action.item()
         else:
-            log_pi=torch.log(pi_s[action]) #log pi
+            log_pi=torch.log(pi_s[0][action]) #log pi
             return (action.item(), log_pi)
 
 
@@ -66,13 +68,10 @@ if __name__ == "__main__":
 
     env = SnakeEnv(silent_mode=False)
     
-    # Test Init Efficiency
-    # print(MODEL_PATH_S)
-    # print(MODEL_PATH_L)
     num_success = 0
     for i in range(NUM_EPISODES):
         num_success += env.reset()
-    print(f"Success rate: {num_success/NUM_EPISODES}")
+    # print(f"Success rate: {num_success/NUM_EPISODES}")
 
     sum_reward = 0
 
@@ -83,11 +82,12 @@ if __name__ == "__main__":
         done = False
         i = 0
         while not done:
-            print(obs.shape)
-            print(policy(obs).shape)
+            # print(obs.shape)
+            # print(policy(obs).shape)
             plt.imshow(obs, interpolation='nearest')
             plt.show()
-            action = env.action_space.sample()
+            # print(policy.choose_action(obs))
+            action, ln_pi = policy.choose_action(obs)
             # action = action_list[i]
             obs, reward, done, info = env.step(action)
             sum_reward += reward

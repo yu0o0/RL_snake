@@ -8,70 +8,102 @@ from snake_env import SnakeEnv
 
 
 def main():
-    NUM_EPISODES = 100
-    RENDER_DELAY = 0.001
+    NUM_EPISODES = 30000
+    max_episode_len = 100
+    showPlots = True
     from matplotlib import pyplot as plt
     
     numActions = 3
     obsSize = 12
     lr = 0.001
     gamma = 0.99
-    folder_name = "ex1"
+    folder_name = "ex2"
     output_path = f"./result/{folder_name}"
     
-    env = SnakeEnv(silent_mode=False)
+    env = SnakeEnv(silent_mode=True)
     policy=SnakeCNN(obsSize, numActions)
     optimizer = torch.optim.Adam(
         policy.parameters(), lr=lr)
     os.makedirs(output_path, exist_ok=True)
-    rewards=[]  
-    log_pis=[]
-    # sum_reward = 0
+    os.makedirs(f'{output_path}/weight', exist_ok=True)
+    
+    best_return = -1e10
+    episodeLengths = []
+    episodeRewards = []
+    averagedRewards = []
 
-    for _ in range(NUM_EPISODES):
+    for episode in range(NUM_EPISODES):
+        if episode % 100 == 0:
+            print('Episode: {}'.format(episode+1))
+            
         state = env.reset()
-        done = False
-        # i = 0
         sum_reward = 0
-        while not done:
-            plt.imshow(state, interpolation='nearest')
-            plt.show()
+        bootstrap_record = []
+        optimizer.zero_grad()
+        
+        step = 0
+        while True:
+            
             (action, log_pi) = policy.choose_action(state)
             next_state, reward, done, info = env.step(action)
             
+            bootstrap_record.append((log_pi, reward))
             sum_reward += reward
-            rewards.append(reward)
-            log_pis.append(log_pi)
+            step+=1
 
             if done: break 
             state = next_state
-        tot_return = 0
-        tot_returns=torch.zeros(len(rewards), dtype=torch.float32) # clean gradient
+            
+        Gt = 0
+        for t, (ln_pi, reward) in list(enumerate(bootstrap_record))[::-1]:
+            Gt = reward+gamma*Gt
 
-        for i in reversed(range(len(rewards))): # reward to go
-            tot_return = rewards[i] + tot_return*gamma
-            tot_returns[i] = tot_return
-        # print(tot_returns)
+            # γGt ∇ln π(St, At, θ) = ∇(γGt * ln π(St, At, θ))
+            # Hope it's larger the better, opposite to loss
+            (-gamma**(t)*Gt*ln_pi).backward()
+            
+        optimizer.step()
 
-        for t in range(len(tot_returns)): # pseudocode
-            tot_returns[t] = (gamma ** t) * tot_returns[t]
-        # print(tot_returns)
+        if sum_reward > best_return:
+            best_return = sum_reward
+            print(
+                f"New best weights found @ episode:{episode+1} tot_reward:{sum_reward}")
+            torch.save(policy.state_dict(),
+                       f'{output_path}/weight/best.pt')
 
-        logpi_stack=torch.stack(log_pis)
-        gradient=torch.dot(tot_returns, logpi_stack) # sum(times) = dot
-        gradient.backward()
-        # theta = theta + alpha * gradient
-        optimizer.step() # Adam not SGD
-        optimizer.zero_grad()
-        # print(info["snake_length"])
-        # print(info["food_pos"])
-        # print(obs)
-        print("sum_reward: %f" % sum_reward)
-        print("episode done")
-        # time.sleep(100)
-    
+        # update stats for later plotting
+        window_len = 100
+        episodeLengths.append(step)
+        episodeRewards.append(sum_reward)
+        w = len(episodeRewards) if len(episodeRewards)<window_len else window_len
+        avg_tot_reward = sum(episodeRewards[-w:])/w
+        averagedRewards.append(avg_tot_reward)
+
+        if episode % 100 == 0:
+            print('\tAvg reward: {}'.format(avg_tot_reward))
+
+    if showPlots:
+        import matplotlib.pyplot as plt
+        plt.subplot(311)
+        plt.plot(episodeLengths)
+        plt.xlabel('Episode')
+        plt.ylabel('Length')
+        plt.subplot(312)
+        plt.plot(episodeRewards)
+        plt.xlabel('Episode')
+        plt.ylabel('Total Reward')
+        plt.subplot(313)
+        plt.plot(averagedRewards)
+        plt.xlabel('Episode')
+        plt.ylabel('Avg Total Reward')
+        plt.savefig(f"{output_path}/training INFO.png")
+        plt.show()
+        # cleanup plots
+        plt.cla()
+        plt.close('all')
+        
     env.close()
-    print("Average episode reward for random strategy: {}".format(sum_reward/NUM_EPISODES))
+
 
 if __name__ == "__main__":
     main()
