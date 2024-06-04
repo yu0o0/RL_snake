@@ -29,7 +29,7 @@ class SnakeEnv(gym.Env):
         self.done = False
 
         if limit_step:
-            self.step_limit = self.grid_size * 2 # More than enough steps to get the food.
+            self.step_limit = self.grid_size * 0.5 # More than enough steps to get the food.
         else:
             self.step_limit = 1e9 # Basically no limit.
         self.reward_step_counter = 0
@@ -39,6 +39,8 @@ class SnakeEnv(gym.Env):
 
         self.done = False
         self.reward_step_counter = 0
+        
+        self.prev_prev_snake_head_pos = np.array((-1, -1))
 
         obs = self._generate_observation()
         return obs
@@ -58,32 +60,32 @@ class SnakeEnv(gym.Env):
             return obs, reward, self.done, info
         
         if self.reward_step_counter > self.step_limit: # Step limit reached, game over.
-            # self.reward_step_counter = 0
             self.done = True
         
         if self.done: # Snake bumps into wall or itself. Episode is over.
-            # Game Over penalty is based on snake size.
-            reward = - math.pow(self.max_growth, (self.grid_size - info["snake_size"]) / self.max_growth) # (-max_growth, -1)            
-            reward = reward * 0.1 * (float(self.reward_step_counter*2)/self.step_limit)
+            reward = -1 * 0.1 # Smaller game over penalty
+            reward = reward * (float(self.reward_step_counter*2)/self.step_limit)
             return obs, reward, self.done, info
-          
+        
         elif info["food_obtained"]: # Food eaten. Reward boost on snake size.
-            reward = info["snake_size"] / self.grid_size
+            reward = info["snake_size"] * 20 / self.grid_size # Increased food reward
             self.reward_step_counter = 0 # Reset reward step counter
         
         else:
-            # Give a tiny reward/penalty to the agent based on whether it is heading towards the food or not.
-            # Not competing with game over penalty or the food eaten reward.
+            # Reward based on heading towards the food
             if np.linalg.norm(info["snake_head_pos"] - info["food_pos"]) < np.linalg.norm(info["prev_snake_head_pos"] - info["food_pos"]):
-                reward = 1 / info["snake_size"]
+                reward = 2 / info["snake_size"] # Increased positive reward
+                if not np.array_equal(self.prev_prev_snake_head_pos, np.array((-1, -1))) and (np.linalg.norm(info["snake_head_pos"] - info["food_pos"]) < np.linalg.norm(self.prev_prev_snake_head_pos - info["food_pos"])):
+                    reward += 3 / info["snake_size"] # Increased positive reward
             else:
-                reward = - 1 / info["snake_size"]
-            reward = reward * 0.1
+                reward = -1 / info["snake_size"] # Reduced negative reward
+                if not np.array_equal(self.prev_prev_snake_head_pos, np.array((-1, -1))) and (np.linalg.norm(info["snake_head_pos"] - info["food_pos"]) > np.linalg.norm(self.prev_prev_snake_head_pos - info["food_pos"])):
+                    reward += -5 / info["snake_size"] # Reduced negative reward
 
-        # max_score: 72 + 14.1 = 86.1
-        # min_score: -14.1
+        self.prev_prev_snake_head_pos = info["prev_snake_head_pos"] 
 
         return obs, reward, self.done, info
+
     
     def render(self):
         self.game.render()
