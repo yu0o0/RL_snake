@@ -29,7 +29,7 @@ class SnakeEnv(gym.Env):
         self.done = False
 
         if limit_step:
-            self.step_limit = self.grid_size * 2 # More than enough steps to get the food.
+            self.step_limit = self.grid_size * 0.5 # More than enough steps to get the food.
         else:
             self.step_limit = 1e9 # Basically no limit.
         self.reward_step_counter = 0
@@ -39,6 +39,8 @@ class SnakeEnv(gym.Env):
 
         self.done = False
         self.reward_step_counter = 0
+        
+        self.prev_prev_snake_head_pos = np.array((-1, -1))
 
         obs = self._generate_observation()
         return obs
@@ -74,15 +76,21 @@ class SnakeEnv(gym.Env):
         else:
             # Give a tiny reward/penalty to the agent based on whether it is heading towards the food or not.
             # Not competing with game over penalty or the food eaten reward.
+            
             if np.linalg.norm(info["snake_head_pos"] - info["food_pos"]) < np.linalg.norm(info["prev_snake_head_pos"] - info["food_pos"]):
                 reward = 1 / info["snake_size"]
+                if not np.array_equal(self.prev_prev_snake_head_pos,np.array((-1, -1))) and (np.linalg.norm(info["snake_head_pos"] - info["food_pos"]) < np.linalg.norm(self.prev_prev_snake_head_pos - info["food_pos"])):
+                    reward += 2 / info["snake_size"]
             else:
-                reward = - 1 / info["snake_size"]
+                reward = - 5 / info["snake_size"]
+                if not np.array_equal(self.prev_prev_snake_head_pos,np.array((-1, -1))) and (np.linalg.norm(info["snake_head_pos"] - info["food_pos"]) > np.linalg.norm(self.prev_prev_snake_head_pos - info["food_pos"])):
+                    reward += - 10 / info["snake_size"]
             # reward = reward * 0.1
             reward /= self.reward_step_counter
 
         # max_score: 72 + 14.1 = 86.1
         # min_score: -14.1
+        self.prev_prev_snake_head_pos = info["prev_snake_head_pos"] 
 
         return obs, reward, self.done, info
     
