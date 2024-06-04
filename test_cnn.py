@@ -14,13 +14,15 @@ def main():
     import numpy as np
     from snake_env import SnakeEnv
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     env = SnakeEnv(silent_mode=False)
     state = env.reset()
    
     sum_reward = 0
 
-    policy=SnakeCNN(12, 3)
-    policy.load_state_dict(torch.load(r"result\ex2\weight\best.pt"))
+    policy=SnakeCNN(12, 3).to(device)
+    policy.load_state_dict(torch.load(r"result\ex3\weight\best.pt"))
     
     while True:
         # print(obs.shape)
@@ -28,8 +30,10 @@ def main():
         # plt.imshow(obs, interpolation='nearest')
         # plt.show()
         # print(policy.choose_action(obs))
-        action, ln_pi = policy.choose_action(state)
-        # action = action_list[i]
+        state_tensor = torch.tensor(state, dtype=torch.float32).to(device).unsqueeze(0)
+        action = torch.argmax(policy(state_tensor)[0])
+        # print(policy(state_tensor))
+        # print(action)
         state, reward, done, info = env.step(action)
         sum_reward += reward
         if np.absolute(reward) > 0.001:

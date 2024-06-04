@@ -68,7 +68,7 @@ class SnakeEnv(gym.Env):
             return obs, reward, self.done, info
           
         elif info["food_obtained"]: # Food eaten. Reward boost on snake size.
-            reward = info["snake_size"] / self.grid_size
+            reward = info["snake_size"] * 10 / self.grid_size
             self.reward_step_counter = 0 # Reset reward step counter
         
         else:
@@ -78,7 +78,8 @@ class SnakeEnv(gym.Env):
                 reward = 1 / info["snake_size"]
             else:
                 reward = - 1 / info["snake_size"]
-            reward = reward * 0.1
+            # reward = reward * 0.1
+            reward /= self.reward_step_counter
 
         # max_score: 72 + 14.1 = 86.1
         # min_score: -14.1

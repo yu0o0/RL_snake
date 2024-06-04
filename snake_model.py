@@ -4,7 +4,7 @@ import torch
 
 
 class SnakeCNN(torch.nn.Module):
-    def __init__(self, obsSize, numActions, useTanh=False):
+    def __init__(self, obsSize, numActions):
         '''
         Parameters:
             numFeatures: Number of input features
@@ -13,11 +13,15 @@ class SnakeCNN(torch.nn.Module):
         super().__init__()
 
         self.C1 = torch.nn.Sequential(collections.OrderedDict([
-            ('c1', torch.nn.Conv2d(3, 6, kernel_size=(3, 3), padding=(1,1))),
-            ('c1_relu', torch.nn.ReLU()),
+            ('c', torch.nn.Conv2d(3, 6, kernel_size=(3, 3), padding=(1,1))),
+            ('Tanh', torch.nn.Tanh()),
+        ]))
+        self.C2 = torch.nn.Sequential(collections.OrderedDict([
+            ('c', torch.nn.Conv2d(6, 12, kernel_size=(3, 3), padding=(1,1))),
+            ('Tanh', torch.nn.Tanh()),
         ]))
         
-        self.dense1=torch.nn.Linear(obsSize**2*6,obsSize**2)
+        self.dense1=torch.nn.Linear((obsSize**2)*12,obsSize**2)
         self.nonlin1=torch.nn.Tanh()
         self.dense2=torch.nn.Linear(obsSize**2,numActions)
         self.softmax1=torch.nn.Softmax(dim=1)
@@ -26,15 +30,17 @@ class SnakeCNN(torch.nn.Module):
         '''
         Compute policy function pi(a|s,w) by forward computation through MLP   
         '''
-        feature_input=torch.tensor(s,dtype=torch.float32)
-        feature_input = feature_input.permute(2, 0, 1).unsqueeze(0)
+        # feature_input=torch.tensor(s,dtype=torch.float32)
+        # channel 維度移到高寬前面
+        feature_input = s.permute(0, 3, 1, 2)
 
         output = self.C1(feature_input)
+        output = self.C2(output)
         output = torch.flatten(output, 1)
         output=self.dense1(output)
         output=self.nonlin1(output)
         output=self.dense2(output)
-        output=self.softmax1(output)
+        # output=self.softmax1(output)
 
         return output
 

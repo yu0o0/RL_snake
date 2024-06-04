@@ -2,9 +2,12 @@ import os
 import sys
 import random
 
+import numpy as np
+
 import torch
 from snake_model import SnakeCNN
 from snake_env import SnakeEnv
+from collections import deque
 
 class EpsilonGreedyPolicy:
     '''
@@ -60,81 +63,106 @@ def main():
     obsSize = 12
     lr = 0.001
     gamma = 0.99
-    folder_name = "ex2"
+    replay_size = 1000
+    batch_size = 64
+    folder_name = "ex3"
     output_path = f"./result/{folder_name}"
     os.makedirs(output_path, exist_ok=True)
     os.makedirs(f'{output_path}/weight', exist_ok=True)
     
     env = SnakeEnv(silent_mode=True)
 
+    # Double DQN
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    policy_net = SnakeCNN(state_size, action_size).to(device)
-    target_net = SnakeCNN(state_size, action_size).to(device)
+    policy_net = SnakeCNN(obsSize, numActions).to(device)
+    target_net = SnakeCNN(obsSize, numActions).to(device)
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
     optimizer = torch.optim.Adam(policy_net.parameters(), lr=lr)
-    
+    criterion = torch.nn.MSELoss()
 
     best_return = -1e10
     episodeLengths = []
     episodeRewards = []
     averagedRewards = []
 
+    # ε-貪婪策略
     epsilon_decay_len = NUM_EPISODES
     actions = list(range(numActions))
     egp = EpsilonGreedyPolicy(1.0, epsilon_decay_len, actions, seed=0)
+
+    replayBuffer=deque(maxlen=replay_size)
 
     for episode in range(NUM_EPISODES):
         if episode % 100 == 0:
             print('Episode: {}'.format(episode+1))
             
         state = env.reset()
-        sum_reward = 0
-        bootstrap_record = []
+        tot_reward = 0
         optimizer.zero_grad()
 
         egp.decay_epsilon(episode)
         
+        
         step = 0
         while True:
+            # 1. From current state , take action according to -greedy policy
+            with torch.no_grad():
+                state_tensor = torch.tensor(state, dtype=torch.float32).to(device).unsqueeze(0)
+                q_s = policy_net(state_tensor)
+                action = egp.choose_action(q_s)
+                next_state, reward, done, info = env.step(action)
             
-            (action, log_pi) = policy.choose_action(state)
-            next_state, reward, done, info = env.step(action)
-            
-            bootstrap_record.append((log_pi, reward))
-            sum_reward += reward
+            # 2. Store experience in replay memory 經驗回放
+            replayBuffer.append((state, action, reward, next_state, done))
+            tot_reward += reward
             step+=1
 
-            if done: break 
+            # 3. Sample random mini-batch of experiences from replay memory
+            minibatch = random.sample(replayBuffer, batch_size) if len(replayBuffer) > batch_size else replayBuffer
+
+            # 4. Update weights using semi-gradient Q-learning update rule
+            # Creating a tensor from a list of numpy.ndarrays is extremely slow.
+            states, actions, rewards, next_states, dones = zip(*minibatch)
+            states = torch.tensor(np.array(states), dtype=torch.float32).to(device)
+            actions = torch.tensor(actions).to(device)
+            rewards = torch.tensor(rewards).to(device)
+            next_states = torch.tensor(np.array(next_states), dtype=torch.float32).to(device)
+            dones = torch.tensor(dones).to(device)
+
+            state_action_values = policy_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+            with torch.no_grad():
+                next_state_values = target_net(next_states).max(1)[0]
+                expected_state_action_values = rewards + gamma * next_state_values * (~dones)
+             
+            loss = criterion(state_action_values, expected_state_action_values)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            if done: 
+                target_net.load_state_dict(policy_net.state_dict())
+                break 
             state = next_state
             
-        Gt = 0
-        for t, (ln_pi, reward) in list(enumerate(bootstrap_record))[::-1]:
-            Gt = reward+gamma*Gt
-
-            # γGt ∇ln π(St, At, θ) = ∇(γGt * ln π(St, At, θ))
-            # Hope it's larger the better, opposite to loss
-            (-gamma**(t)*Gt*ln_pi).backward()
-            
-        optimizer.step()
-
-        if sum_reward > best_return:
-            best_return = sum_reward
+        if tot_reward > best_return:
+            best_return = tot_reward
             print(
-                f"New best weights found @ episode:{episode+1} tot_reward:{sum_reward}")
-            torch.save(policy.state_dict(),
+                f"New best weights found @ episode:{episode+1} tot_reward:{tot_reward}")
+            torch.save(policy_net.state_dict(),
                        f'{output_path}/weight/best.pt')
 
+        
         # update stats for later plotting
         window_len = 100
         episodeLengths.append(step)
-        episodeRewards.append(sum_reward)
+        episodeRewards.append(tot_reward)
         w = len(episodeRewards) if len(episodeRewards)<window_len else window_len
         avg_tot_reward = sum(episodeRewards[-w:])/w
         averagedRewards.append(avg_tot_reward)
 
-        if episode % 100 == 0:
-            print('\tAvg reward: {}'.format(avg_tot_reward))
+        # if episode % 100 == 0:
+        print('episode: {}\ttotal reward: {}'.format(episode+1, tot_reward))
 
     if showPlots:
         import matplotlib.pyplot as plt
