@@ -42,8 +42,6 @@ class SnakeGame:
         self.food = None
         self.seed_value = seed
 
-        random.seed(seed) # Set random seed.
-        
         self.reset()
 
     def reset(self):
@@ -52,6 +50,8 @@ class SnakeGame:
         self.direction = "DOWN" # Snake starts downward in each round
         self.food = self._generate_food()
         self.score = 0
+        
+        random.seed(self.seed_value) # Set random seed.
 
     def step(self, action):
         self._update_direction(action) # Update direction based on action.

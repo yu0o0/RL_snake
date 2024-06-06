@@ -54,17 +54,19 @@ class EpsilonGreedyPolicy:
 
 
 def main():
-    NUM_EPISODES = 30000
+    DEBUG = False
+    
+    NUM_EPISODES = 3000
     max_episode_len = 100
     showPlots = True
     from matplotlib import pyplot as plt
     
     numActions = 3
     obsSize = 12
-    lr = 0.001
-    gamma = 0.99
+    lr = 0.005
+    gamma = 0.9
     replay_size = 1000
-    batch_size = 64
+    batch_size = 16
     folder_name = "ex3"
     output_path = f"./result/{folder_name}"
     os.makedirs(output_path, exist_ok=True)
@@ -98,25 +100,22 @@ def main():
             print('Episode: {}'.format(episode+1))
             
         state = env.reset()
-        tot_reward = 0
-        optimizer.zero_grad()
 
         egp.decay_epsilon(episode)
         
         
-        step = 0
         while True:
+            policy_net.train()
             # 1. From current state , take action according to -greedy policy
             with torch.no_grad():
                 state_tensor = torch.tensor(state, dtype=torch.float32).to(device).unsqueeze(0)
                 q_s = policy_net(state_tensor)
-                action = egp.choose_action(q_s)
+                # action = torch.argmax(q_s[0])
+                action = egp.choose_action(q_s[0])
                 next_state, reward, done, info = env.step(action)
             
             # 2. Store experience in replay memory 經驗回放
             replayBuffer.append((state, action, reward, next_state, done))
-            tot_reward += reward
-            step+=1
 
             # 3. Sample random mini-batch of experiences from replay memory
             minibatch = random.sample(replayBuffer, batch_size) if len(replayBuffer) > batch_size else replayBuffer
@@ -134,23 +133,46 @@ def main():
             with torch.no_grad():
                 next_state_values = target_net(next_states).max(1)[0]
                 expected_state_action_values = rewards + gamma * next_state_values * (~dones)
-             
-            loss = criterion(state_action_values, expected_state_action_values)
+            
+            if DEBUG:
+                print(actions)
+                print(state_action_values)
+                print(expected_state_action_values)
+                plt.imshow(states[-1].to("cpu"), interpolation='nearest')
+                plt.show()
+            
+            
             optimizer.zero_grad()
+            loss = criterion(state_action_values, expected_state_action_values)
             loss.backward()
             optimizer.step()
 
             if done: 
-                target_net.load_state_dict(policy_net.state_dict())
                 break 
             state = next_state
-            
+        
+        # 驗證
+        policy_net.eval()
+        tot_reward = 0
+        state = env.reset()
+        step = 0
+        while True:
+            with torch.no_grad():
+                state_tensor = torch.tensor(state, dtype=torch.float32).to(device).unsqueeze(0)
+                q_s = policy_net(state_tensor)
+                action = torch.argmax(q_s[0])
+                state, reward, done, info = env.step(action)
+                tot_reward += reward
+                step+=1
+                if done: break 
         if tot_reward > best_return:
             best_return = tot_reward
             print(
                 f"New best weights found @ episode:{episode+1} tot_reward:{tot_reward}")
+            print(f"step: {step}")
             torch.save(policy_net.state_dict(),
                        f'{output_path}/weight/best.pt')
+            target_net.load_state_dict(policy_net.state_dict())
 
         
         # update stats for later plotting

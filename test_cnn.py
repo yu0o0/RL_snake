@@ -8,6 +8,7 @@ from snake_env import SnakeEnv
 
 
 def main():
+    DEBUG = False
     RENDER_DELAY = 0.5
     from matplotlib import pyplot as plt
     import time
@@ -23,17 +24,22 @@ def main():
 
     policy=SnakeCNN(12, 3).to(device)
     policy.load_state_dict(torch.load(r"result\ex3\weight\best.pt"))
-    
+    policy.eval()
     while True:
         # print(obs.shape)
         # print(policy(obs).shape)
-        # plt.imshow(obs, interpolation='nearest')
-        # plt.show()
+        
         # print(policy.choose_action(obs))
         state_tensor = torch.tensor(state, dtype=torch.float32).to(device).unsqueeze(0)
-        action = torch.argmax(policy(state_tensor)[0])
-        # print(policy(state_tensor))
-        # print(action)
+        q_s = policy(state_tensor)
+        action = torch.argmax(q_s[0])
+        
+        if DEBUG:
+            print(q_s)
+            print(action)
+            plt.imshow(state, interpolation='nearest')
+            plt.show()
+        
         state, reward, done, info = env.step(action)
         sum_reward += reward
         if np.absolute(reward) > 0.001:
