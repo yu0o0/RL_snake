@@ -62,13 +62,13 @@ def main():
     showPlots = True
     from matplotlib import pyplot as plt
     
-    numActions = 4
+    numActions = 3
     obsSize = 12
     lr = 0.001
     gamma = 0.9
-    replay_size = 16
-    batch_size = 16
-    folder_name = "ex6"
+    replay_size = 100
+    batch_size = 32
+    folder_name = "DDQN-3A"
     output_path = f"./result/{folder_name}"
     os.makedirs(output_path, exist_ok=True)
     os.makedirs(f'{output_path}/weight', exist_ok=True)
@@ -78,7 +78,7 @@ def main():
     # Double DQN
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     policy_net = SnakeCNN(obsSize, numActions).to(device)
-    policy_net.load_state_dict(torch.load(r"result\ex5\weight\best.pt"))
+    # policy_net.load_state_dict(torch.load(r"result\ex5\weight\best.pt"))
     target_net = SnakeCNN(obsSize, numActions).to(device)
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()

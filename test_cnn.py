@@ -10,7 +10,7 @@ from snake_env import SnakeEnv
 def main():
     DEBUG = False
     RENDER_DELAY = 0.2
-    numActions = 4
+    numActions = 3
     obsSize = 12
     from matplotlib import pyplot as plt
     import time
@@ -26,7 +26,7 @@ def main():
 
     policy=SnakeCNN(obsSize, numActions).to(device)
     # policy.load_state_dict(torch.load(r"result\ex6\weight\last.pt"))
-    policy.load_state_dict(torch.load(r"result\ex6\weight\best.pt"))
+    policy.load_state_dict(torch.load(r"result\DDQN-3A\weight\best.pt"))
     policy.eval()
     while True:
         # print(obs.shape)

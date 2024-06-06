@@ -117,14 +117,21 @@ class SnakeGame:
         clock_wise = ["RIGHT", "DOWN", "LEFT", "UP"]
         idx = clock_wise.index(self.direction)
         
+        # if action == 0:
+        #     self.direction = "LEFT"
+        # elif action == 1:
+        #     self.direction = "UP"
+        # elif action == 2:
+        #     self.direction = "RIGHT"
+        # elif action == 3:
+        #     self.direction = "DOWN"
+
         if action == 0:
-            self.direction = "LEFT"
+            self.direction = clock_wise[(idx - 1) % 4]
         elif action == 1:
-            self.direction = "UP"
+            self.direction = self.direction
         elif action == 2:
-            self.direction = "RIGHT"
-        elif action == 3:
-            self.direction = "DOWN"
+            self.direction = clock_wise[(idx + 1) % 4]
 
 
     def _generate_food(self):
