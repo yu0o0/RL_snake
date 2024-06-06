@@ -58,7 +58,6 @@ def main():
     
     EPOCHNUM = 10
     NUM_EPISODES = 3000
-    max_episode_len = 100
     showPlots = True
     from matplotlib import pyplot as plt
     
@@ -102,7 +101,7 @@ def main():
             # if episode % 100 == 0:
             #     print('Episode: {}'.format(episode+1))
                 
-            state = env.reset()
+            loc, img = env.reset()
 
             egp.decay_epsilon(episode)
             
@@ -111,38 +110,41 @@ def main():
                 policy_net.train()
                 # 1. From current state , take action according to -greedy policy
                 with torch.no_grad():
-                    state_tensor = torch.tensor(state, dtype=torch.float32).to(device).unsqueeze(0)
-                    q_s = policy_net(state_tensor)
+                    loc_tensor = torch.tensor(loc, dtype=torch.float).to(device).unsqueeze(0)
+                    img_tensor = torch.tensor(img, dtype=torch.float).to(device).unsqueeze(0)
+                    q_s = policy_net(loc_tensor, img_tensor)
                     # action = torch.argmax(q_s[0])
                     action = egp.choose_action(q_s[0])
-                    next_state, reward, done, info = env.step(action)
+                    (next_loc, next_img), reward, done, info = env.step(action)
                 
                 # 2. Store experience in replay memory 經驗回放
-                replayBuffer.append((state, action, reward, next_state, done))
+                replayBuffer.append((loc, img, action, reward, next_loc, next_img, done))
 
                 # 3. Sample random mini-batch of experiences from replay memory
                 minibatch = random.sample(replayBuffer, batch_size) if len(replayBuffer) > batch_size else replayBuffer
 
                 # 4. Update weights using semi-gradient Q-learning update rule
                 # Creating a tensor from a list of numpy.ndarrays is extremely slow.
-                states, actions, rewards, next_states, dones = zip(*minibatch)
-                states = torch.tensor(np.array(states), dtype=torch.float32).to(device)
+                locs, imgs, actions, rewards, next_locs, next_imgs, dones = zip(*minibatch)
+                locs = torch.tensor(np.array(locs), dtype=torch.float).to(device)
+                imgs = torch.tensor(np.array(imgs), dtype=torch.float).to(device)
                 actions = torch.tensor(actions).to(device)
                 rewards = torch.tensor(rewards).to(device)
-                next_states = torch.tensor(np.array(next_states), dtype=torch.float32).to(device)
+                next_locs = torch.tensor(np.array(next_locs), dtype=torch.float32).to(device)
+                next_imgs = torch.tensor(np.array(next_imgs), dtype=torch.float32).to(device)
                 dones = torch.tensor(dones).to(device)
                 
 
-                state_action_values = policy_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+                state_action_values = policy_net(locs, imgs).gather(1, actions.unsqueeze(1)).squeeze(1)
                 with torch.no_grad():
-                    next_state_values = target_net(next_states).max(1)[0]
+                    next_state_values = target_net(next_locs, next_imgs).max(1)[0]
                     expected_state_action_values = rewards + gamma * next_state_values * (~dones)
                 
                 if DEBUG:
                     print(actions)
                     print(state_action_values)
                     print(expected_state_action_values)
-                    plt.imshow(states[-1].to("cpu"), interpolation='nearest')
+                    plt.imshow(imgs[-1].to("cpu"), interpolation='nearest')
                     plt.show()
                 
                 
@@ -153,19 +155,20 @@ def main():
 
                 if done: 
                     break 
-                state = next_state
+                loc, img = next_loc, next_img
             
             # 驗證
             policy_net.eval()
             tot_reward = 0
-            state = env.reset()
+            loc, img = env.reset()
             step = 0
             while True:
                 with torch.no_grad():
-                    state_tensor = torch.tensor(state, dtype=torch.float32).to(device).unsqueeze(0)
-                    q_s = policy_net(state_tensor)
+                    loc_tensor = torch.tensor(loc, dtype=torch.float).to(device).unsqueeze(0)
+                    img_tensor = torch.tensor(img, dtype=torch.float).to(device).unsqueeze(0)
+                    q_s = policy_net(loc_tensor, img_tensor)
                     action = torch.argmax(q_s[0])
-                    state, reward, done, info = env.step(action)
+                    (loc, img), reward, done, info = env.step(action)
                     tot_reward += reward
                     step+=1
                     if done: break 

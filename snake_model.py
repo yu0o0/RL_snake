@@ -11,49 +11,44 @@ class SnakeCNN(torch.nn.Module):
         '''
         super().__init__()
 
-        self.C1 = torch.nn.Sequential(collections.OrderedDict([
-            ('c', torch.nn.Conv2d(3, 9, kernel_size=(3, 3), padding=(1, 1))),
+        self.IMG_C1 = torch.nn.Sequential(collections.OrderedDict([
+            ('c', torch.nn.Conv2d(1, 5, kernel_size=(3, 3), padding=(1, 1))),
+            ('MaxPool', torch.nn.MaxPool2d(kernel_size=5, stride=3))
             # ('ReLU', torch.nn.ReLU()),
         ]))
-        self.C2 = torch.nn.Sequential(collections.OrderedDict([
-            ('c', torch.nn.Conv2d(6, 9, kernel_size=(3, 3), padding=(1, 1))),
+        self.LOC_F1 = torch.nn.Sequential(collections.OrderedDict([
+            ('f', torch.nn.Linear(2, 25)),
             # ('ReLU', torch.nn.ReLU()),
-        ]))
-        self.C3 = torch.nn.Sequential(collections.OrderedDict([
-            ('c', torch.nn.Conv2d(9, 18, kernel_size=(3, 3), padding=(1, 1))),
+            # ('dropout', torch.nn.Dropout(p=0.5))
         ]))
 
-        self.F1 = torch.nn.Sequential(collections.OrderedDict([
-            ('f', torch.nn.Linear((obsSize**2)*18, (obsSize**2)*5)),
+        self.MIX1 = torch.nn.Sequential(collections.OrderedDict([
+            ('f', torch.nn.Linear(70, 256)),
             ('ReLU', torch.nn.ReLU()),
             # ('dropout', torch.nn.Dropout(p=0.5))
         ]))
-        self.F2 = torch.nn.Sequential(collections.OrderedDict([
-            ('f', torch.nn.Linear((obsSize**2)*5, (obsSize**2))),
-            # ('ReLU', torch.nn.ReLU()),
-            # ('dropout', torch.nn.Dropout(p=0.5))
+        self.MIX_OUT = torch.nn.Sequential(collections.OrderedDict([
+            ('f', torch.nn.Linear(256, numActions)),
         ]))
-        self.F3 = torch.nn.Sequential(collections.OrderedDict([
-            ('f', torch.nn.Linear((obsSize**2)*5, numActions)),
-        ]))
+        
 
-    def forward(self, s):
+    def forward(self, locs, imgs):
         '''
         Compute policy function pi(a|s,w) by forward computation through MLP   
         '''
+        locs_t = self.LOC_F1(locs)  # B, 25
+
         # channel 維度移到高寬前面
-        feature_input = s.permute(0, 3, 1, 2)
+        imgs = imgs.permute(0, 3, 1, 2)
+        imgs_t = self.IMG_C1(imgs)  # B, 5, 3, 3
+        imgs_t = torch.flatten(imgs_t, 1)   # B, 45
 
-        output = self.C1(feature_input)
-        # output = self.C2(output)
-        output = self.C3(output)
-        output = torch.flatten(output, 1)
-        output = self.F1(output)
-        # output = self.F2(output)
-        output = self.F3(output)
-        # output=self.softmax1(output)
+        mix = torch.cat((locs_t, imgs_t), dim=1)  # B, 70
 
-        return output
+        mix = self.MIX1(mix)
+        mix = self.MIX_OUT(mix)
+
+        return mix
 
     def choose_action(self, s, returnLogpi=True):
         '''
@@ -83,34 +78,33 @@ if __name__ == "__main__":
     import numpy as np
     from snake_env import SnakeEnv
 
-    env = SnakeEnv(silent_mode=False)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    num_success = 0
-    for i in range(NUM_EPISODES):
-        num_success += env.reset()
-    # print(f"Success rate: {num_success/NUM_EPISODES}")
+    env = SnakeEnv(silent_mode=False)
 
     sum_reward = 0
 
     policy = SnakeCNN(12, 3)
 
     for _ in range(NUM_EPISODES):
-        obs = env.reset()
+        loc, img = env.reset()
         done = False
-        i = 0
         while not done:
-            # print(obs.shape)
-            # print(policy(obs).shape)
-            plt.imshow(obs, interpolation='nearest')
-            plt.show()
+            loc_tensor = torch.tensor(loc, dtype=torch.float).to(device).unsqueeze(0)
+            img_tensor = torch.tensor(img, dtype=torch.float).to(device).unsqueeze(0)
+            
             # print(policy.choose_action(obs))
-            action, ln_pi = policy.choose_action(obs)
-            # action = action_list[i]
-            obs, reward, done, info = env.step(action)
+            q_s = policy(loc_tensor, img_tensor)
+            action = torch.argmax(q_s[0])
+            (loc, img), reward, done, info = env.step(action)
             sum_reward += reward
             if np.absolute(reward) > 0.001:
                 print(reward)
             env.render()
+
+            print(q_s, action)
+            plt.imshow(img)
+            plt.show()
 
             time.sleep(RENDER_DELAY)
         # print(info["snake_length"])
