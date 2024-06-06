@@ -13,7 +13,7 @@ class SnakeEnv(gym.Env):
 
         self.silent_mode = silent_mode
 
-        self.action_space = gym.spaces.Discrete(3) # 0: 向左, 1: 向前, 2: 向右
+        self.action_space = gym.spaces.Discrete(4) # 0: 向左, 1: 向前, 2: 向右
         
         self.observation_space = gym.spaces.Box(
             low=0, high=255,
@@ -29,7 +29,7 @@ class SnakeEnv(gym.Env):
         self.done = False
 
         if limit_step:
-            self.step_limit = int(self.grid_size * 0.2) # More than enough steps to get the food.
+            self.step_limit = int(self.grid_size * 2) # More than enough steps to get the food.
         else:
             self.step_limit = 1e9 # Basically no limit.
         self.reward_step_counter = 0
@@ -48,7 +48,7 @@ class SnakeEnv(gym.Env):
         self.done, info = self.game.step(action) # info = {"snake_size": int, "snake_head_pos": np.array, "prev_snake_head_pos": np.array, "food_pos": np.array, "food_obtained": bool}
         obs = self._generate_observation()
 
-        reward = 0.0
+        reward = 0
         self.reward_step_counter += 1
 
         if info["snake_size"] == self.grid_size: # Snake fills up the entire board. Game over.
@@ -66,17 +66,17 @@ class SnakeEnv(gym.Env):
         if self.done: # Snake bumps into wall or itself. Episode is over.
             # Game Over penalty is based on snake size.
             # reward = - math.pow(self.max_growth, (self.grid_size - info["snake_size"]) / self.max_growth) # (-max_growth, -1)            
-            reward -= 10
+            reward -= 20
             if not self.waste_life:
-                reward *= 1
+                reward *= 3
             else:
-                reward *= 2
+                reward *= 3
             
             return obs, reward, self.done, info
           
         elif info["food_obtained"]: # Food eaten. Reward boost on snake size.
             # reward = info["snake_size"] * 100 / self.grid_size
-            reward += 10
+            reward += 50
             self.reward_step_counter = 0 # Reset reward step counter
         
         else:
@@ -84,11 +84,11 @@ class SnakeEnv(gym.Env):
             # Not competing with game over penalty or the food eaten reward.
             if np.linalg.norm(info["snake_head_pos"] - info["food_pos"]) < np.linalg.norm(info["prev_snake_head_pos"] - info["food_pos"]):
                 # reward += 1 / info["snake_size"]
-                reward += 0.1
+                reward += 0.5
             else:
-                reward -= 0.1
+                reward -= 0.5
                 # reward -= 2 / info["snake_size"]
-            reward *= 1
+            reward *= 20
             # reward -= self.reward_step_counter * 0.005
 
         # max_score: 72 + 14.1 = 86.1

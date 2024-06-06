@@ -112,17 +112,19 @@ class SnakeGame:
 
         return done, info
 
-    # 0: 向左, 1: 向前, 2: 向右
+    # 0: 向左, 1: 向上, 2: 向右, 3: 向下
     def _update_direction(self, action):
         clock_wise = ["RIGHT", "DOWN", "LEFT", "UP"]
         idx = clock_wise.index(self.direction)
         
         if action == 0:
-            self.direction = clock_wise[(idx - 1) % 4]
+            self.direction = "LEFT"
         elif action == 1:
-            self.direction = self.direction
+            self.direction = "UP"
         elif action == 2:
-            self.direction = clock_wise[(idx + 1) % 4]
+            self.direction = "RIGHT"
+        elif action == 3:
+            self.direction = "DOWN"
 
 
     def _generate_food(self):

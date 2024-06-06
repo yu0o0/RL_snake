@@ -12,29 +12,29 @@ class SnakeCNN(torch.nn.Module):
         super().__init__()
 
         self.C1 = torch.nn.Sequential(collections.OrderedDict([
-            ('c', torch.nn.Conv2d(3, 18, kernel_size=(3, 3), padding=(1, 1))),
-            ('ReLU', torch.nn.ReLU()),
+            ('c', torch.nn.Conv2d(3, 9, kernel_size=(3, 3), padding=(1, 1))),
+            # ('ReLU', torch.nn.ReLU()),
         ]))
         self.C2 = torch.nn.Sequential(collections.OrderedDict([
-            ('c', torch.nn.Conv2d(18, 64, kernel_size=(3, 3), padding=(1, 1))),
-            ('ReLU', torch.nn.ReLU()),
+            ('c', torch.nn.Conv2d(6, 9, kernel_size=(3, 3), padding=(1, 1))),
+            # ('ReLU', torch.nn.ReLU()),
         ]))
         self.C3 = torch.nn.Sequential(collections.OrderedDict([
-            ('c', torch.nn.Conv2d(64, 128, kernel_size=(3, 3), padding=(1, 1))),
+            ('c', torch.nn.Conv2d(9, 18, kernel_size=(3, 3), padding=(1, 1))),
         ]))
 
         self.F1 = torch.nn.Sequential(collections.OrderedDict([
-            ('f', torch.nn.Linear((obsSize**2)*128, (obsSize**2)*10)),
+            ('f', torch.nn.Linear((obsSize**2)*18, (obsSize**2)*5)),
             ('ReLU', torch.nn.ReLU()),
             # ('dropout', torch.nn.Dropout(p=0.5))
         ]))
         self.F2 = torch.nn.Sequential(collections.OrderedDict([
-            ('f', torch.nn.Linear((obsSize**2)*10, (obsSize**2))),
-            ('ReLU', torch.nn.ReLU()),
+            ('f', torch.nn.Linear((obsSize**2)*5, (obsSize**2))),
+            # ('ReLU', torch.nn.ReLU()),
             # ('dropout', torch.nn.Dropout(p=0.5))
         ]))
         self.F3 = torch.nn.Sequential(collections.OrderedDict([
-            ('f', torch.nn.Linear((obsSize**2), numActions)),
+            ('f', torch.nn.Linear((obsSize**2)*5, numActions)),
         ]))
 
     def forward(self, s):
@@ -45,11 +45,11 @@ class SnakeCNN(torch.nn.Module):
         feature_input = s.permute(0, 3, 1, 2)
 
         output = self.C1(feature_input)
-        output = self.C2(output)
+        # output = self.C2(output)
         output = self.C3(output)
         output = torch.flatten(output, 1)
         output = self.F1(output)
-        output = self.F2(output)
+        # output = self.F2(output)
         output = self.F3(output)
         # output=self.softmax1(output)
 

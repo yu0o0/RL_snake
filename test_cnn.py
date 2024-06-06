@@ -9,7 +9,9 @@ from snake_env import SnakeEnv
 
 def main():
     DEBUG = False
-    RENDER_DELAY = 0.5
+    RENDER_DELAY = 0.2
+    numActions = 4
+    obsSize = 12
     from matplotlib import pyplot as plt
     import time
     import numpy as np
@@ -17,13 +19,14 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    env = SnakeEnv(silent_mode=False)
+    env = SnakeEnv(silent_mode=False, seed=0)
     state = env.reset()
-   
+
     sum_reward = 0
 
-    policy=SnakeCNN(12, 3).to(device)
-    policy.load_state_dict(torch.load(r"result\ex3\weight\best.pt"))
+    policy=SnakeCNN(obsSize, numActions).to(device)
+    # policy.load_state_dict(torch.load(r"result\ex6\weight\last.pt"))
+    policy.load_state_dict(torch.load(r"result\ex6\weight\best.pt"))
     policy.eval()
     while True:
         # print(obs.shape)
