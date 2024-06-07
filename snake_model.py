@@ -53,6 +53,7 @@ class SnakeCNN(torch.nn.Module):
 
         mix = self.MIX1(mix)    # B, 256
         mix = self.MIX_OUT(mix) # B, numActions
+        mix=self.softmax1(mix)
 
         return mix
 
