@@ -32,7 +32,7 @@ class SnakeEnv(gym.Env):
 
         if limit_step:
             # More than enough steps to get the food.
-            self.step_limit = int(self.grid_size * 2)
+            self.step_limit = int(self.grid_size * 0.5)
         else:
             self.step_limit = 1e9  # Basically no limit.
         self.reward_step_counter = 0
@@ -42,7 +42,7 @@ class SnakeEnv(gym.Env):
 
         self.done = False
         self.reward_step_counter = 0
-        self.waste_life = False
+        self.hungry = False
 
         state = self._generate_observation()
         return state
@@ -65,15 +65,15 @@ class SnakeEnv(gym.Env):
 
         if self.reward_step_counter > self.step_limit:  # Step limit reached, game over.
             self.reward_step_counter = 0
-            self.waste_life = True
+            self.hungry = True
             self.done = True
 
         if self.done:  # Snake bumps into wall or itself. Episode is over.
             # Game Over penalty is based on snake size.
             # reward = - math.pow(self.max_growth, (self.grid_size - info["snake_size"]) / self.max_growth) # (-max_growth, -1)
             reward -= 20
-            if not self.waste_life:
-                reward *= 3
+            if self.hungry:
+                reward *= 0
             else:
                 reward *= 3
 
@@ -81,7 +81,7 @@ class SnakeEnv(gym.Env):
 
         elif info["food_obtained"]:  # Food eaten. Reward boost on snake size.
             # reward = info["snake_size"] * 100 / self.grid_size
-            reward += 50
+            reward += 30
             self.reward_step_counter = 0  # Reset reward step counter
 
         else:
@@ -93,7 +93,7 @@ class SnakeEnv(gym.Env):
             else:
                 reward -= 0.5
                 # reward -= 2 / info["snake_size"]
-            reward *= 20
+            reward *= 2
             # reward -= self.reward_step_counter * 0.005
 
         # max_score: 72 + 14.1 = 86.1
@@ -176,6 +176,13 @@ class SnakeEnv(gym.Env):
             # self.game.food[0] > self.game.snake[0][0],  # food right
             self.game.food[1] - self.game.snake[0][1],  # food up
             # self.game.food[1] > self.game.snake[0][1]  # food down
+
+            self.game.direction == "LEFT",  #蛇的面向(左)
+            self.game.direction == "RIGHT", #蛇的面向(右)
+            self.game.direction == "UP",    #蛇的面向(上)
+            self.game.direction == "DOWN",  #蛇的面向(下)
+
+            self.reward_step_counter,
         ]
         loc = np.array(loc)
 

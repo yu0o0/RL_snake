@@ -56,8 +56,8 @@ class EpsilonGreedyPolicy:
 def main():
     DEBUG = False
     
-    EPOCHNUM = 10
-    NUM_EPISODES = 3000
+    EPOCHNUM = 1
+    NUM_EPISODES = 10000
     showPlots = True
     from matplotlib import pyplot as plt
     
@@ -67,7 +67,7 @@ def main():
     gamma = 0.9
     replay_size = 100
     batch_size = 32
-    folder_name = "DDQN-3A"
+    folder_name = "MIX-3A"
     output_path = f"./result/{folder_name}"
     os.makedirs(output_path, exist_ok=True)
     os.makedirs(f'{output_path}/weight', exist_ok=True)
