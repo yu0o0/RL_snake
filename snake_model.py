@@ -46,15 +46,16 @@ class SnakeCNN(torch.nn.Module):
 
     def forward(self, locs, imgs):
         '''
-        Compute policy function pi(a|s,w) by forward computation through MLP   
+        loc: B, 11
+        img: B, 12, 12, 1
         '''
-        imgs = imgs.permute(0, 3, 1, 2)
-        imgs_t = self.IMG_C1(imgs)
-        imgs_t = torch.flatten(imgs_t, 1)
-        imgs_t = self.IMG_F1(imgs_t)
-        mix = torch.cat((locs, imgs_t), dim=1)
-        mix = self.LOC_F1(mix)  # B, 24
-        mix = self.LOC_F2(mix)  # B, 24
+        imgs = imgs.permute(0, 3, 1, 2) # B, 1, 12, 12
+        imgs_t = self.IMG_C1(imgs)  # B, 64, 1, 1
+        imgs_t = torch.flatten(imgs_t, 1)   # B, 64
+        imgs_t = self.IMG_F1(imgs_t)    # B, 5
+        mix = torch.cat((locs, imgs_t), dim=1)  # B, 16
+        mix = self.LOC_F1(mix)  # B, 256
+        mix = self.LOC_F2(mix)  # B, numActions
         
         
         
