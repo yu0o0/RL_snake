@@ -2,9 +2,8 @@ import collections
 import torch
 
 
-
 class SnakeCNN(torch.nn.Module):
-    def __init__(self, obsSize, numActions, useTanh=False):
+    def __init__(self, obsSize, numActions):
         '''
         Parameters:
             numFeatures: Number of input features
@@ -12,49 +11,84 @@ class SnakeCNN(torch.nn.Module):
         '''
         super().__init__()
 
-        self.C1 = torch.nn.Sequential(collections.OrderedDict([
-            ('c1', torch.nn.Conv2d(3, 6, kernel_size=(3, 3), padding=(1,1))),
-            ('c1_relu', torch.nn.ReLU()),
+        self.IMG_C1 = torch.nn.Sequential(collections.OrderedDict([
+            ('c', torch.nn.Conv2d(1, 64, kernel_size=(12, 12))),
+            # ('MaxPool', torch.nn.MaxPool2d(kernel_size=3, stride=2))
+            # ('ReLU', torch.nn.ReLU()),
         ]))
+        self.IMG_F1 = torch.nn.Sequential(collections.OrderedDict([
+            ('f', torch.nn.Linear(64, 5)),
+            ('ReLU', torch.nn.ReLU()),
+            # ('dropout', torch.nn.Dropout(p=0.5))
+        ]))
+        self.LOC_F1 = torch.nn.Sequential(collections.OrderedDict([
+            ('f', torch.nn.Linear(16, 256)),
+            ('ReLU', torch.nn.ReLU()),
+            # ('dropout', torch.nn.Dropout(p=0.5))
+        ]))
+        self.LOC_F2 = torch.nn.Sequential(collections.OrderedDict([
+            ('f', torch.nn.Linear(256, numActions)),
+            # ('ReLU', torch.nn.ReLU()),
+            # ('dropout', torch.nn.Dropout(p=0.5))
+        ]))
+
+        self.MIX1 = torch.nn.Sequential(collections.OrderedDict([
+            ('f', torch.nn.Linear(30, 256)),
+            ('ReLU', torch.nn.ReLU()),
+            # ('dropout', torch.nn.Dropout(p=0.5))
+        ]))
+        self.MIX_OUT = torch.nn.Sequential(collections.OrderedDict([
+            ('f', torch.nn.Linear(256, numActions)),
+        ]))
+
+        self.softmax=torch.nn.Softmax(dim=1)
         
-        self.dense1=torch.nn.Linear(obsSize**2*6,obsSize**2)
-        self.nonlin1=torch.nn.Tanh()
-        self.dense2=torch.nn.Linear(obsSize**2,numActions)
-        self.softmax1=torch.nn.Softmax(dim=1)
- 
-    def forward(self,s):
+
+    def forward(self, locs, imgs):
         '''
         Compute policy function pi(a|s,w) by forward computation through MLP   
         '''
-        feature_input=torch.tensor(s,dtype=torch.float32)
-        feature_input = feature_input.permute(2, 0, 1).unsqueeze(0)
+        imgs = imgs.permute(0, 3, 1, 2)
+        imgs_t = self.IMG_C1(imgs)
+        imgs_t = torch.flatten(imgs_t, 1)
+        imgs_t = self.IMG_F1(imgs_t)
+        mix = torch.cat((locs, imgs_t), dim=1)
+        mix = self.LOC_F1(mix)  # B, 24
+        mix = self.LOC_F2(mix)  # B, 24
+        
+        
+        
+        
+        # locs_t = self.LOC_F1(locs)  # B, 24
 
-        output = self.C1(feature_input)
-        output = torch.flatten(output, 1)
-        output=self.dense1(output)
-        output=self.nonlin1(output)
-        output=self.dense2(output)
-        output=self.softmax1(output)
+        # channel 維度移到高寬前面
+        # imgs = imgs.permute(0, 3, 1, 2)
+        # imgs_t = self.IMG_C1(imgs)  # B, 10, 5, 5
+        # imgs_t = torch.flatten(imgs_t, 1)   # B, 250
+        # imgs_t = self.IMG_F1(imgs_t)    # B, 10
 
-        return output
+        # mix = torch.cat((locs_t, imgs_t), dim=1)  # B, 30
 
-    def choose_action(self,s,returnLogpi=True):
+        # mix = self.MIX1(mix)    # B, 256
+        # mix = self.MIX_OUT(mix) # B, numActions
+
+        return mix
+
+    def choose_action(self, locs, imgs, return_q_s=False):
         '''
         Sample an action at state s, using current policy
-        
+
         Returns chosen action, and optionally the computed PG log pi term
         '''
-        pi_s = self.forward(s)
-        # print(pi_s)
-        prob_model = torch.distributions.Categorical(pi_s)
-        action = prob_model.sample()   #sample an action from current policy probabilities
-        # print(action)
+        q_s = self.forward(locs, imgs)
+        probs = self.softmax(q_s)
+        actions = torch.multinomial(probs, 1)
         
-        if not returnLogpi:
-            return action.item()
+        if return_q_s:
+            return actions, q_s
         else:
-            log_pi=torch.log(pi_s[0][action]) #log pi
-            return (action.item(), log_pi)
+            return actions
+        
 
 
 if __name__ == "__main__":
@@ -66,35 +100,34 @@ if __name__ == "__main__":
     import numpy as np
     from snake_env import SnakeEnv
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     env = SnakeEnv(silent_mode=False)
-    
-    num_success = 0
-    for i in range(NUM_EPISODES):
-        num_success += env.reset()
-    # print(f"Success rate: {num_success/NUM_EPISODES}")
 
     sum_reward = 0
 
-    policy=SnakeCNN(12, 3)
-    
+    policy = SnakeCNN(12, 3).to(device)
+
     for _ in range(NUM_EPISODES):
-        obs = env.reset()
+        loc, img = env.reset()
         done = False
-        i = 0
         while not done:
-            # print(obs.shape)
-            # print(policy(obs).shape)
-            plt.imshow(obs, interpolation='nearest')
-            plt.show()
+            loc_tensor = torch.tensor(loc, dtype=torch.float).to(device).unsqueeze(0)
+            img_tensor = torch.tensor(img, dtype=torch.float).to(device).unsqueeze(0)
+            
             # print(policy.choose_action(obs))
-            action, ln_pi = policy.choose_action(obs)
-            # action = action_list[i]
-            obs, reward, done, info = env.step(action)
+            actions, q_s = policy.choose_action(loc_tensor, img_tensor, return_q_s=True)
+            action = actions[0]
+            (loc, img), reward, done, info = env.step(action)
             sum_reward += reward
             if np.absolute(reward) > 0.001:
                 print(reward)
             env.render()
-            
+
+            print(q_s, action)
+            plt.imshow(img)
+            plt.show()
+
             time.sleep(RENDER_DELAY)
         # print(info["snake_length"])
         # print(info["food_pos"])
@@ -102,6 +135,7 @@ if __name__ == "__main__":
         print("sum_reward: %f" % sum_reward)
         print("episode done")
         # time.sleep(100)
-    
+
     env.close()
-    print("Average episode reward for random strategy: {}".format(sum_reward/NUM_EPISODES))
+    print("Average episode reward for random strategy: {}".format(
+        sum_reward/NUM_EPISODES))

@@ -42,8 +42,6 @@ class SnakeGame:
         self.food = None
         self.seed_value = seed
 
-        random.seed(seed) # Set random seed.
-        
         self.reset()
 
     def reset(self):
@@ -52,6 +50,8 @@ class SnakeGame:
         self.direction = "DOWN" # Snake starts downward in each round
         self.food = self._generate_food()
         self.score = 0
+        
+        random.seed(self.seed_value) # Set random seed.
 
     def step(self, action):
         self._update_direction(action) # Update direction based on action.
@@ -106,16 +106,26 @@ class SnakeGame:
             "snake_head_pos": np.array(self.snake[0]),
             "prev_snake_head_pos": np.array(self.snake[1]),
             "food_pos": np.array(self.food),
-            "food_obtained": food_obtained
+            "food_obtained": food_obtained,
+            # "prev_prev_snake_head_pos": np.array(self.snake[2]),
         }
 
         return done, info
 
-    # 0: 向左, 1: 向前, 2: 向右
+    # 0: 向左, 1: 向上, 2: 向右, 3: 向下
     def _update_direction(self, action):
         clock_wise = ["RIGHT", "DOWN", "LEFT", "UP"]
         idx = clock_wise.index(self.direction)
         
+        # if action == 0:
+        #     self.direction = "LEFT"
+        # elif action == 1:
+        #     self.direction = "UP"
+        # elif action == 2:
+        #     self.direction = "RIGHT"
+        # elif action == 3:
+        #     self.direction = "DOWN"
+
         if action == 0:
             self.direction = clock_wise[(idx - 1) % 4]
         elif action == 1:
@@ -130,6 +140,16 @@ class SnakeGame:
         else: # If the snake occupies the entire board, no need to generate new food and just default to (0, 0).
             food = (0, 0)
         return food
+    
+    def is_collision(self, point):
+        (row, col) = point
+        return (
+            (row, col) in self.snake
+            or row < 0
+            or row >= self.board_size
+            or col < 0
+            or col >= self.board_size
+        )
     
     def draw_score(self):
         score_text = self.font.render(f"Score: {self.score}", True, (255, 255, 255))

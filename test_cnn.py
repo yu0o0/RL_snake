@@ -8,29 +8,40 @@ from snake_env import SnakeEnv
 
 
 def main():
-    RENDER_DELAY = 0.5
+    DEBUG = False
+    RENDER_DELAY = 0.2
+    numActions = 3
+    obsSize = 12
+    folder_name = "MIX-3A"
     from matplotlib import pyplot as plt
     import time
     import numpy as np
     from snake_env import SnakeEnv
 
-    env = SnakeEnv(silent_mode=False)
-    state = env.reset()
-   
-    sum_reward = 0
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    policy=SnakeCNN(12, 3)
-    policy.load_state_dict(torch.load(r"result\ex2\weight\best.pt"))
-    
+    policy_net=SnakeCNN(obsSize, numActions).to(device)
+    # policy_net.load_state_dict(torch.load(f"result/{folder_name}/weight/last.pt"))
+    policy_net.load_state_dict(torch.load(f"result/{folder_name}/weight/best.pt"))
+    policy_net.eval()
+
+    env = SnakeEnv(silent_mode=False, seed=0)
+    loc, img = env.reset()
+
+    sum_reward = 0
     while True:
-        # print(obs.shape)
-        # print(policy(obs).shape)
-        # plt.imshow(obs, interpolation='nearest')
-        # plt.show()
-        # print(policy.choose_action(obs))
-        action, ln_pi = policy.choose_action(state)
-        # action = action_list[i]
-        state, reward, done, info = env.step(action)
+        loc_tensor = torch.tensor(loc, dtype=torch.float).to(device).unsqueeze(0)
+        img_tensor = torch.tensor(img, dtype=torch.float).to(device).unsqueeze(0)
+        q_s = policy_net(loc_tensor, img_tensor)
+        action = torch.argmax(q_s[0])
+        
+        if DEBUG:
+            print(q_s)
+            print(action)
+            plt.imshow(img)
+            plt.show()
+        
+        (loc, img), reward, done, info = env.step(action)
         sum_reward += reward
         if np.absolute(reward) > 0.001:
             print(reward)
@@ -42,7 +53,6 @@ def main():
     # print(info["snake_length"])
     # print(info["food_pos"])
     # print(obs)
-    print("sum_reward: %f" % sum_reward)
     print("episode done")
     time.sleep(1)
     
