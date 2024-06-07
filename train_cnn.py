@@ -59,7 +59,7 @@ def main():
     showPlots = True
     from matplotlib import pyplot as plt
     
-    numActions = 4
+    numActions = 3
     obsSize = 12
     lr = 0.001
     gamma = 0.9

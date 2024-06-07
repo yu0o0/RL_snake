@@ -12,17 +12,22 @@ class SnakeCNN(torch.nn.Module):
         super().__init__()
 
         self.IMG_C1 = torch.nn.Sequential(collections.OrderedDict([
-            ('c', torch.nn.Conv2d(1, 10, kernel_size=(3, 3), padding=(1, 1))),
-            ('MaxPool', torch.nn.MaxPool2d(kernel_size=3, stride=2))
+            ('c', torch.nn.Conv2d(1, 64, kernel_size=(12, 12))),
+            # ('MaxPool', torch.nn.MaxPool2d(kernel_size=3, stride=2))
             # ('ReLU', torch.nn.ReLU()),
         ]))
         self.IMG_F1 = torch.nn.Sequential(collections.OrderedDict([
-            ('f', torch.nn.Linear(250, 10)),
-            # ('ReLU', torch.nn.ReLU()),
+            ('f', torch.nn.Linear(64, 5)),
+            ('ReLU', torch.nn.ReLU()),
             # ('dropout', torch.nn.Dropout(p=0.5))
         ]))
         self.LOC_F1 = torch.nn.Sequential(collections.OrderedDict([
-            ('f', torch.nn.Linear(7, 20)),
+            ('f', torch.nn.Linear(16, 256)),
+            ('ReLU', torch.nn.ReLU()),
+            # ('dropout', torch.nn.Dropout(p=0.5))
+        ]))
+        self.LOC_F2 = torch.nn.Sequential(collections.OrderedDict([
+            ('f', torch.nn.Linear(256, numActions)),
             # ('ReLU', torch.nn.ReLU()),
             # ('dropout', torch.nn.Dropout(p=0.5))
         ]))
@@ -43,18 +48,29 @@ class SnakeCNN(torch.nn.Module):
         '''
         Compute policy function pi(a|s,w) by forward computation through MLP   
         '''
-        locs_t = self.LOC_F1(locs)  # B, 24
+        imgs = imgs.permute(0, 3, 1, 2)
+        imgs_t = self.IMG_C1(imgs)
+        imgs_t = torch.flatten(imgs_t, 1)
+        imgs_t = self.IMG_F1(imgs_t)
+        mix = torch.cat((locs, imgs_t), dim=1)
+        mix = self.LOC_F1(mix)  # B, 24
+        mix = self.LOC_F2(mix)  # B, 24
+        
+        
+        
+        
+        # locs_t = self.LOC_F1(locs)  # B, 24
 
         # channel 維度移到高寬前面
-        imgs = imgs.permute(0, 3, 1, 2)
-        imgs_t = self.IMG_C1(imgs)  # B, 10, 5, 5
-        imgs_t = torch.flatten(imgs_t, 1)   # B, 250
-        imgs_t = self.IMG_F1(imgs_t)    # B, 10
+        # imgs = imgs.permute(0, 3, 1, 2)
+        # imgs_t = self.IMG_C1(imgs)  # B, 10, 5, 5
+        # imgs_t = torch.flatten(imgs_t, 1)   # B, 250
+        # imgs_t = self.IMG_F1(imgs_t)    # B, 10
 
-        mix = torch.cat((locs_t, imgs_t), dim=1)  # B, 30
+        # mix = torch.cat((locs_t, imgs_t), dim=1)  # B, 30
 
-        mix = self.MIX1(mix)    # B, 256
-        mix = self.MIX_OUT(mix) # B, numActions
+        # mix = self.MIX1(mix)    # B, 256
+        # mix = self.MIX_OUT(mix) # B, numActions
 
         return mix
 

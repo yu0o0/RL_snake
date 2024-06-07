@@ -141,6 +141,16 @@ class SnakeGame:
             food = (0, 0)
         return food
     
+    def is_collision(self, point):
+        (row, col) = point
+        return (
+            (row, col) in self.snake
+            or row < 0
+            or row >= self.board_size
+            or col < 0
+            or col >= self.board_size
+        )
+    
     def draw_score(self):
         score_text = self.font.render(f"Score: {self.score}", True, (255, 255, 255))
         self.screen.blit(score_text, (self.border_size, self.height + 2 * self.border_size))

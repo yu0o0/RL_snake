@@ -10,7 +10,7 @@ from snake_env import SnakeEnv
 def main():
     DEBUG = False
     RENDER_DELAY = 0.2
-    numActions = 4
+    numActions = 3
     obsSize = 12
     folder_name = "MIX-3A"
     from matplotlib import pyplot as plt

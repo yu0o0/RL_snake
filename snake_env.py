@@ -17,12 +17,6 @@ class SnakeEnv(gym.Env):
 
         self.action_space = gym.spaces.Discrete(3)  # 0: 向左, 1: 向前, 2: 向右
 
-        self.observation_space = gym.spaces.Box(
-            low=0, high=255,
-            shape=(84, 84, 3),
-            dtype=np.uint8
-        )
-
         self.board_size = board_size
         self.grid_size = board_size ** 2  # Max length of snake is board_size^2
         self.init_snake_size = len(self.game.snake)
@@ -84,16 +78,16 @@ class SnakeEnv(gym.Env):
             reward += 20
             self.reward_step_counter = 0  # Reset reward step counter
 
-        # else:
-        #     # Give a tiny reward/penalty to the agent based on whether it is heading towards the food or not.
-        #     # Not competing with game over penalty or the food eaten reward.
-        #     if np.linalg.norm(info["snake_head_pos"] - info["food_pos"]) < np.linalg.norm(info["prev_snake_head_pos"] - info["food_pos"]):
-        #         # reward += 1 / info["snake_size"]
-        #         reward += 0.5
-        #     else:
-        #         reward -= 0.5
-        #         # reward -= 2 / info["snake_size"]
-        #     reward *= 2
+        else:
+            # Give a tiny reward/penalty to the agent based on whether it is heading towards the food or not.
+            # Not competing with game over penalty or the food eaten reward.
+            if np.linalg.norm(info["snake_head_pos"] - info["food_pos"]) < np.linalg.norm(info["prev_snake_head_pos"] - info["food_pos"]):
+                # reward += 1 / info["snake_size"]
+                reward += 0.5
+            else:
+                reward -= 0.5
+                # reward -= 2 / info["snake_size"]
+            reward *= 2
         #     # reward -= self.reward_step_counter * 0.005
 
         # max_score: 72 + 14.1 = 86.1
@@ -166,12 +160,43 @@ class SnakeEnv(gym.Env):
         img = np.zeros((self.game.board_size, self.game.board_size), dtype=np.uint8)
 
         # Set the snake body to gray with linearly decreasing intensity from head to tail.
-        img[tuple(np.transpose(self.game.snake))] = np.linspace(
-            255, 50, len(self.game.snake), dtype=np.uint8)
+        # img[tuple(np.transpose(self.game.snake))] = np.linspace(
+        #     255, 50, len(self.game.snake), dtype=np.uint8)
+        img[tuple(np.transpose(self.game.snake))] = 125
+        img[tuple(self.game.snake[0])] = 255
+        # img[tuple(self.game.snake[-1])] = 50
         img = np.expand_dims(img, axis=2)
 
+        head = self.game.snake[0]
+        row, col = head
         life = self.step_limit - self.reward_step_counter
+        dir_l = self.game.direction == "LEFT"  #蛇的面向(左)
+        dir_r = self.game.direction == "RIGHT" #蛇的面向(右)
+        dir_u = self.game.direction == "UP"    #蛇的面向(上)
+        dir_d = self.game.direction == "DOWN"  #蛇的面向(下)
+        point_l = (row, col-1)  #往左的點座標
+        point_r = (row, col+1)  #往右的點座標
+        point_u = (row-1, col)  #往上的點座標
+        point_d = (row+1, col)  #往下的點座標
         loc = [
+            # Danger straight
+            (dir_r and self.game.is_collision(point_r)) or 
+            (dir_l and self.game.is_collision(point_l)) or 
+            (dir_u and self.game.is_collision(point_u)) or 
+            (dir_d and self.game.is_collision(point_d)),
+
+            # Danger right
+            (dir_u and self.game.is_collision(point_r)) or 
+            (dir_d and self.game.is_collision(point_l)) or 
+            (dir_l and self.game.is_collision(point_u)) or 
+            (dir_r and self.game.is_collision(point_d)),
+
+            # Danger left
+            (dir_d and self.game.is_collision(point_r)) or 
+            (dir_u and self.game.is_collision(point_l)) or 
+            (dir_r and self.game.is_collision(point_u)) or 
+            (dir_l and self.game.is_collision(point_d)),
+            
             # Food location
             self.game.food[0] - self.game.snake[0][0],  # food left
             # self.game.food[0] > self.game.snake[0][0],  # food right
@@ -184,6 +209,7 @@ class SnakeEnv(gym.Env):
             self.game.direction == "DOWN",  #蛇的面向(下)
 
             life,
+            len(self.game.snake),
         ]
         loc = np.array(loc)
 
