@@ -73,28 +73,28 @@ class SnakeEnv(gym.Env):
             # reward = - math.pow(self.max_growth, (self.grid_size - info["snake_size"]) / self.max_growth) # (-max_growth, -1)
             reward -= 20
             if self.hungry:
-                reward *= 0
+                reward *= 2
             else:
-                reward *= 3
+                reward *= 1
 
             return state, reward, self.done, info
 
         elif info["food_obtained"]:  # Food eaten. Reward boost on snake size.
             # reward = info["snake_size"] * 100 / self.grid_size
-            reward += 30
+            reward += 20
             self.reward_step_counter = 0  # Reset reward step counter
 
-        else:
-            # Give a tiny reward/penalty to the agent based on whether it is heading towards the food or not.
-            # Not competing with game over penalty or the food eaten reward.
-            if np.linalg.norm(info["snake_head_pos"] - info["food_pos"]) < np.linalg.norm(info["prev_snake_head_pos"] - info["food_pos"]):
-                # reward += 1 / info["snake_size"]
-                reward += 0.5
-            else:
-                reward -= 0.5
-                # reward -= 2 / info["snake_size"]
-            reward *= 2
-            # reward -= self.reward_step_counter * 0.005
+        # else:
+        #     # Give a tiny reward/penalty to the agent based on whether it is heading towards the food or not.
+        #     # Not competing with game over penalty or the food eaten reward.
+        #     if np.linalg.norm(info["snake_head_pos"] - info["food_pos"]) < np.linalg.norm(info["prev_snake_head_pos"] - info["food_pos"]):
+        #         # reward += 1 / info["snake_size"]
+        #         reward += 0.5
+        #     else:
+        #         reward -= 0.5
+        #         # reward -= 2 / info["snake_size"]
+        #     reward *= 2
+        #     # reward -= self.reward_step_counter * 0.005
 
         # max_score: 72 + 14.1 = 86.1
         # min_score: -14.1
@@ -170,6 +170,7 @@ class SnakeEnv(gym.Env):
             255, 50, len(self.game.snake), dtype=np.uint8)
         img = np.expand_dims(img, axis=2)
 
+        life = self.step_limit - self.reward_step_counter
         loc = [
             # Food location
             self.game.food[0] - self.game.snake[0][0],  # food left
@@ -182,7 +183,7 @@ class SnakeEnv(gym.Env):
             self.game.direction == "UP",    #蛇的面向(上)
             self.game.direction == "DOWN",  #蛇的面向(下)
 
-            self.reward_step_counter,
+            life,
         ]
         loc = np.array(loc)
 

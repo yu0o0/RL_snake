@@ -8,9 +8,9 @@ from snake_env import SnakeEnv
 
 
 def main():
-    DEBUG = True
+    DEBUG = False
     RENDER_DELAY = 0.2
-    numActions = 3
+    numActions = 4
     obsSize = 12
     folder_name = "MIX-3A"
     from matplotlib import pyplot as plt
@@ -21,7 +21,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     policy_net=SnakeCNN(obsSize, numActions).to(device)
-    # policy.load_state_dict(torch.load(f"result/{folder_name}/weight/last.pt"))
+    # policy_net.load_state_dict(torch.load(f"result/{folder_name}/weight/last.pt"))
     policy_net.load_state_dict(torch.load(f"result/{folder_name}/weight/best.pt"))
     policy_net.eval()
 

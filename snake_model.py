@@ -35,6 +35,8 @@ class SnakeCNN(torch.nn.Module):
         self.MIX_OUT = torch.nn.Sequential(collections.OrderedDict([
             ('f', torch.nn.Linear(256, numActions)),
         ]))
+
+        self.softmax=torch.nn.Softmax(dim=1)
         
 
     def forward(self, locs, imgs):
@@ -53,27 +55,24 @@ class SnakeCNN(torch.nn.Module):
 
         mix = self.MIX1(mix)    # B, 256
         mix = self.MIX_OUT(mix) # B, numActions
-        mix=self.softmax1(mix)
 
         return mix
 
-    def choose_action(self, s, returnLogpi=True):
+    def choose_action(self, locs, imgs, return_q_s=False):
         '''
         Sample an action at state s, using current policy
 
         Returns chosen action, and optionally the computed PG log pi term
         '''
-        pi_s = self.forward(s)
-        # print(pi_s)
-        prob_model = torch.distributions.Categorical(pi_s)
-        action = prob_model.sample()  # sample an action from current policy probabilities
-        # print(action)
-
-        if not returnLogpi:
-            return action.item()
+        q_s = self.forward(locs, imgs)
+        probs = self.softmax(q_s)
+        actions = torch.multinomial(probs, 1)
+        
+        if return_q_s:
+            return actions, q_s
         else:
-            log_pi = torch.log(pi_s[0][action])  # log pi
-            return (action.item(), log_pi)
+            return actions
+        
 
 
 if __name__ == "__main__":
@@ -101,8 +100,8 @@ if __name__ == "__main__":
             img_tensor = torch.tensor(img, dtype=torch.float).to(device).unsqueeze(0)
             
             # print(policy.choose_action(obs))
-            q_s = policy(loc_tensor, img_tensor)
-            action = torch.argmax(q_s[0])
+            actions, q_s = policy.choose_action(loc_tensor, img_tensor, return_q_s=True)
+            action = actions[0]
             (loc, img), reward, done, info = env.step(action)
             sum_reward += reward
             if np.absolute(reward) > 0.001:

@@ -36,14 +36,12 @@ class EpsilonGreedyPolicy:
         self.greedy_prob = 1.0-self.epsilon+self.epsilon/self.num_actions
         self.rand_prob = self.epsilon/self.num_actions
 
-    def choose_action(self, q_s):
+    def choose_action(self, greedy_action):
         '''
         Given q_s=q(state), make epsilon-greedy action choice
         '''
         # create epsilon-greedy policy (at current state only) from q_s
         policy = [self.rand_prob]*self.num_actions
-        with torch.no_grad():
-            greedy_action = torch.argmax(q_s)
         policy[greedy_action] = self.greedy_prob
 
         # choose random action based on e-greedy policy
@@ -61,7 +59,7 @@ def main():
     showPlots = True
     from matplotlib import pyplot as plt
     
-    numActions = 3
+    numActions = 4
     obsSize = 12
     lr = 0.001
     gamma = 0.9
@@ -98,9 +96,7 @@ def main():
         replayBuffer=deque(maxlen=replay_size)
 
         for episode in range(NUM_EPISODES):
-            # if episode % 100 == 0:
-            #     print('Episode: {}'.format(episode+1))
-                
+
             loc, img = env.reset()
 
             egp.decay_epsilon(episode)
@@ -112,9 +108,9 @@ def main():
                 with torch.no_grad():
                     loc_tensor = torch.tensor(loc, dtype=torch.float).to(device).unsqueeze(0)
                     img_tensor = torch.tensor(img, dtype=torch.float).to(device).unsqueeze(0)
-                    q_s = policy_net(loc_tensor, img_tensor)
+                    action_probs = policy_net.choose_action(loc_tensor, img_tensor)
                     # action = torch.argmax(q_s[0])
-                    action = egp.choose_action(q_s[0])
+                    action = egp.choose_action(action_probs[0])
                     (next_loc, next_img), reward, done, info = env.step(action)
                 
                 # 2. Store experience in replay memory 經驗回放
