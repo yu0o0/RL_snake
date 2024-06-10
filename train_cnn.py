@@ -55,29 +55,33 @@ def main():
     DEBUG = False
     
     EPOCHNUM = 1
-    NUM_EPISODES = 10000
+    NUM_EPISODES = 30000
     showPlots = True
     from matplotlib import pyplot as plt
     
     numActions = 3
     obsSize = 12
-    lr = 0.001
-    gamma = 0.9
-    replay_size = 100
-    batch_size = 32
-    folder_name = "MIX-3A"
+    lr = 0.003
+    gamma = 0.85
+    replay_size = 5000
+    batch_size = 64
+    folder_name = "MIX-3A_3filter9p_3"
     output_path = f"./result/{folder_name}"
     os.makedirs(output_path, exist_ok=True)
     os.makedirs(f'{output_path}/weight', exist_ok=True)
     
-    env = SnakeEnv(silent_mode=True)
+    env = SnakeEnv(silent_mode=True, random_episode=True)
 
     # Double DQN
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    policy_net = SnakeCNN(obsSize, numActions).to(device)
-    # policy_net.load_state_dict(torch.load(r"result\ex5\weight\best.pt"))
-    target_net = SnakeCNN(obsSize, numActions).to(device)
-    target_net.load_state_dict(policy_net.state_dict())
+    # policy_net = SnakeCNN(obsSize, numActions).to(device)
+    # policy_net.load_state_dict(torch.load(r"result\MIX-3A_3filter7pool\weight\best.pt"))
+    # target_net = SnakeCNN(obsSize, numActions).to(device)
+    # target_net.load_state_dict(policy_net.state_dict())
+    
+    policy_net = torch.load(r"result\MIX-3A_3filter9p_2\weight\best_model.pt").to(device)
+    target_net = torch.load(r"result\MIX-3A_3filter9p_2\weight\best_model.pt").to(device)
+    
     target_net.eval()
     optimizer = torch.optim.Adam(policy_net.parameters(), lr=lr)
     criterion = torch.nn.MSELoss()
@@ -173,12 +177,12 @@ def main():
                 print(
                     f"New best weights found @ epoch: {epoch+1} , episode:{episode+1} tot_reward:{tot_reward}")
                 print(f"step: {step}")
-                torch.save(policy_net.state_dict(),
-                        f'{output_path}/weight/best.pt')
+                # torch.save(policy_net.state_dict(), f'{output_path}/weight/best.pt')
+                torch.save(policy_net, f'{output_path}/weight/best_model.pt')
                 
             if episode % 20 == 0:
-                torch.save(policy_net.state_dict(),
-                        f'{output_path}/weight/last.pt')
+                # torch.save(policy_net.state_dict(), f'{output_path}/weight/last.pt')
+                torch.save(policy_net, f'{output_path}/weight/last_model.pt')
                 
             target_net.load_state_dict(policy_net.state_dict())
             

@@ -7,10 +7,10 @@ from snake_game import SnakeGame
 
 
 class SnakeEnv(gym.Env):
-    def __init__(self, seed=0, board_size=12, silent_mode=True, limit_step=True):
+    def __init__(self, seed=0, board_size=12, silent_mode=True, limit_step=True, random_episode=False):
         super().__init__()
         self.game = SnakeGame(
-            seed=seed, board_size=board_size, silent_mode=silent_mode)
+            seed=seed, board_size=board_size, silent_mode=silent_mode, random_episode=random_episode)
         self.game.reset()
 
         self.silent_mode = silent_mode
@@ -26,7 +26,7 @@ class SnakeEnv(gym.Env):
 
         if limit_step:
             # More than enough steps to get the food.
-            self.step_limit = int(self.grid_size * 0.5)
+            self.step_limit = int(self.grid_size)
         else:
             self.step_limit = 1e9  # Basically no limit.
         self.reward_step_counter = 0
@@ -46,7 +46,7 @@ class SnakeEnv(gym.Env):
         self.done, info = self.game.step(action)
         state = self._generate_observation()
 
-        reward = 0
+        reward = 0.0
         self.reward_step_counter += 1
 
         # Snake fills up the entire board. Game over.
@@ -83,83 +83,78 @@ class SnakeEnv(gym.Env):
             # Not competing with game over penalty or the food eaten reward.
             if np.linalg.norm(info["snake_head_pos"] - info["food_pos"]) < np.linalg.norm(info["prev_snake_head_pos"] - info["food_pos"]):
                 # reward += 1 / info["snake_size"]
-                reward += 0.5
+                reward += 1
             else:
-                reward -= 0.5
+                reward -= 1
                 # reward -= 2 / info["snake_size"]
-            reward *= 2
+            reward *= 0.05
         #     # reward -= self.reward_step_counter * 0.005
-
-        # max_score: 72 + 14.1 = 86.1
-        # min_score: -14.1
 
         return state, reward, self.done, info
 
     def render(self):
         self.game.render()
 
-    def get_action_mask(self):
-        return np.array([[self._check_action_validity(a) for a in range(self.action_space.n)]])
+    # def get_action_mask(self):
+    #     return np.array([[self._check_action_validity(a) for a in range(self.action_space.n)]])
 
-    # Check if the action is against the current direction of the snake or is ending the game.
-    def _check_action_validity(self, action):
-        current_direction = self.game.direction
-        snake_list = self.game.snake
-        row, col = snake_list[0]
-        if action == 0:  # UP
-            if current_direction == "DOWN":
-                return False
-            else:
-                row -= 1
+    # # Check if the action is against the current direction of the snake or is ending the game.
+    # def _check_action_validity(self, action):
+    #     current_direction = self.game.direction
+    #     snake_list = self.game.snake
+    #     row, col = snake_list[0]
+    #     if action == 0:  # UP
+    #         if current_direction == "DOWN":
+    #             return False
+    #         else:
+    #             row -= 1
 
-        elif action == 1:  # LEFT
-            if current_direction == "RIGHT":
-                return False
-            else:
-                col -= 1
+    #     elif action == 1:  # LEFT
+    #         if current_direction == "RIGHT":
+    #             return False
+    #         else:
+    #             col -= 1
 
-        elif action == 2:  # RIGHT
-            if current_direction == "LEFT":
-                return False
-            else:
-                col += 1
+    #     elif action == 2:  # RIGHT
+    #         if current_direction == "LEFT":
+    #             return False
+    #         else:
+    #             col += 1
 
-        elif action == 3:  # DOWN
-            if current_direction == "UP":
-                return False
-            else:
-                row += 1
+    #     elif action == 3:  # DOWN
+    #         if current_direction == "UP":
+    #             return False
+    #         else:
+    #             row += 1
 
-        # Check if snake collided with itself or the wall. Note that the tail of the snake would be poped if the snake did not eat food in the current step.
-        if (row, col) == self.game.food:
-            game_over = (
-                # The snake won't pop the last cell if it ate food.
-                (row, col) in snake_list
-                or row < 0
-                or row >= self.board_size
-                or col < 0
-                or col >= self.board_size
-            )
-        else:
-            game_over = (
-                # The snake will pop the last cell if it did not eat food.
-                (row, col) in snake_list[:-1]
-                or row < 0
-                or row >= self.board_size
-                or col < 0
-                or col >= self.board_size
-            )
+    #     # Check if snake collided with itself or the wall. Note that the tail of the snake would be poped if the snake did not eat food in the current step.
+    #     if (row, col) == self.game.food:
+    #         game_over = (
+    #             # The snake won't pop the last cell if it ate food.
+    #             (row, col) in snake_list
+    #             or row < 0
+    #             or row >= self.board_size
+    #             or col < 0
+    #             or col >= self.board_size
+    #         )
+    #     else:
+    #         game_over = (
+    #             # The snake will pop the last cell if it did not eat food.
+    #             (row, col) in snake_list[:-1]
+    #             or row < 0
+    #             or row >= self.board_size
+    #             or col < 0
+    #             or col >= self.board_size
+    #         )
 
-        if game_over:
-            return False
-        else:
-            return True
+    #     if game_over:
+    #         return False
+    #     else:
+    #         return True
 
-    # EMPTY: BLACK; SnakeBODY: GRAY; SnakeHEAD: GREEN; FOOD: RED;
     def _generate_observation(self):
         img = np.zeros((self.game.board_size, self.game.board_size), dtype=np.uint8)
 
-        # Set the snake body to gray with linearly decreasing intensity from head to tail.
         # img[tuple(np.transpose(self.game.snake))] = np.linspace(
         #     255, 50, len(self.game.snake), dtype=np.uint8)
         img[tuple(np.transpose(self.game.snake))] = 125
@@ -170,10 +165,10 @@ class SnakeEnv(gym.Env):
         head = self.game.snake[0]
         row, col = head
         life = self.step_limit - self.reward_step_counter
-        dir_l = self.game.direction == "LEFT"  #蛇的面向(左)
-        dir_r = self.game.direction == "RIGHT" #蛇的面向(右)
-        dir_u = self.game.direction == "UP"    #蛇的面向(上)
-        dir_d = self.game.direction == "DOWN"  #蛇的面向(下)
+        dir_l = self.game.direction == "LEFT"  # 蛇向(左)
+        dir_r = self.game.direction == "RIGHT" # 蛇向(右)
+        dir_u = self.game.direction == "UP"    # 蛇向(上)
+        dir_d = self.game.direction == "DOWN"  # 蛇向(下)
         point_l = (row, col-1)  #往左的點座標
         point_r = (row, col+1)  #往右的點座標
         point_u = (row-1, col)  #往上的點座標

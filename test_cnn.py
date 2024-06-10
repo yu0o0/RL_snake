@@ -12,7 +12,7 @@ def main():
     RENDER_DELAY = 0.2
     numActions = 3
     obsSize = 12
-    folder_name = "MIX-3A"
+    folder_name = "MIX-3A_3filter9p_2"
     from matplotlib import pyplot as plt
     import time
     import numpy as np
@@ -20,9 +20,10 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    policy_net=SnakeCNN(obsSize, numActions).to(device)
+    # policy_net=SnakeCNN(obsSize, numActions).to(device)
     # policy_net.load_state_dict(torch.load(f"result/{folder_name}/weight/last.pt"))
-    policy_net.load_state_dict(torch.load(f"result/{folder_name}/weight/best.pt"))
+    # policy_net.load_state_dict(torch.load(f"result/{folder_name}/weight/best.pt"))
+    policy_net = torch.load(f"result/{folder_name}/weight/best_model.pt").to(device)
     policy_net.eval()
 
     env = SnakeEnv(silent_mode=False, seed=0)

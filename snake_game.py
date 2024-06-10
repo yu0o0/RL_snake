@@ -8,7 +8,7 @@ import pygame
 from pygame import mixer
 
 class SnakeGame:
-    def __init__(self, seed=0, board_size=12, silent_mode=True):
+    def __init__(self, seed=0, board_size=12, silent_mode=True, random_episode=False):
         self.board_size = board_size
         self.grid_size = self.board_size ** 2
         self.cell_size = 40
@@ -40,8 +40,9 @@ class SnakeGame:
         self.direction = None
         self.score = 0
         self.food = None
+        self.random_episode = random_episode
         self.seed_value = seed
-
+        random.seed(self.seed_value)
         self.reset()
 
     def reset(self):
@@ -51,7 +52,8 @@ class SnakeGame:
         self.food = self._generate_food()
         self.score = 0
         
-        random.seed(self.seed_value) # Set random seed.
+        if not self.random_episode:
+            random.seed(self.seed_value) # Set random seed.
 
     def step(self, action):
         self._update_direction(action) # Update direction based on action.

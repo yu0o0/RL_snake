@@ -12,17 +12,17 @@ class SnakeCNN(torch.nn.Module):
         super().__init__()
 
         self.IMG_C1 = torch.nn.Sequential(collections.OrderedDict([
-            ('c', torch.nn.Conv2d(1, 64, kernel_size=(12, 12))),
-            # ('MaxPool', torch.nn.MaxPool2d(kernel_size=3, stride=2))
+            ('c', torch.nn.Conv2d(1, 10, kernel_size=(3, 3), padding=(1, 1))),
+            # ('MaxPool', torch.nn.MaxPool2d(kernel_size=7, stride=2))
             # ('ReLU', torch.nn.ReLU()),
         ]))
         self.IMG_F1 = torch.nn.Sequential(collections.OrderedDict([
-            ('f', torch.nn.Linear(64, 5)),
+            ('f', torch.nn.Linear(1440, 9)),
             ('ReLU', torch.nn.ReLU()),
             # ('dropout', torch.nn.Dropout(p=0.5))
         ]))
         self.LOC_F1 = torch.nn.Sequential(collections.OrderedDict([
-            ('f', torch.nn.Linear(16, 256)),
+            ('f', torch.nn.Linear(20, 256)),
             ('ReLU', torch.nn.ReLU()),
             # ('dropout', torch.nn.Dropout(p=0.5))
         ]))
