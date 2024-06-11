@@ -40,7 +40,12 @@
   - ε-greedy policy
   - 經驗回放
   - 每個eposide結束會驗證model成效，將best儲存
-
+- 比較
+  - CNN
+    - 3point
+    - 9point
+    - 32point
+  - FCN
 
 ---
 ---
