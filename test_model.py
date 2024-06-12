@@ -8,12 +8,12 @@ from snake_model import SnakeCNN, SnakeFCN
 
 def main():
     DEBUG = False
-    RENDER_DELAY = 0.2
+    RENDER_DELAY = 0.05
     numActions = 3
     obsSize = 12
     folder_name = "3A_CNN3p"
     # folder_name = "3A_FCN"
-    weight_idx = 3
+    weight_idx = 4
     weight_type = (
         "best"
         # "last"
@@ -64,9 +64,6 @@ def main():
         
         if done: break 
         
-    # print(info["snake_length"])
-    # print(info["food_pos"])
-    # print(obs)
     print("episode done")
     time.sleep(1)
     

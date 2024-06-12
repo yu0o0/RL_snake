@@ -135,7 +135,6 @@ class SnakeGame:
         elif action == 2:
             self.direction = clock_wise[(idx + 1) % 4]
 
-
     def _generate_food(self):
         if len(self.non_snake) > 0:
             food = random.sample(sorted(self.non_snake), 1)[0]

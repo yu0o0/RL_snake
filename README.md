@@ -48,7 +48,7 @@
   - FCN
 - exp
   - epoch 1
-    初始化每個eposide的亂數種子
+    初始化每個eposide的亂數種子(seed=0)
     epsilon = 1
     alpha = 0.003
     gamma = 0.9
