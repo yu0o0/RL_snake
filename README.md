@@ -46,6 +46,23 @@
     - 9point
     - 32point
   - FCN
+- exp
+  - epoch 1
+    初始化每個eposide的亂數種子
+    epsilon = 1
+    alpha = 0.003
+    gamma = 0.9
+  - epoch 2
+    不初始化每個eposide的亂數種子
+    epsilon = 0.5
+    alpha = 0.003
+    gamma = 0.9
+  - epoch 3
+    不初始化每個eposide的亂數種子
+    epsilon = 0.2
+    alpha = 0.003
+    gamma = 0.9
+
 
 ---
 ---
