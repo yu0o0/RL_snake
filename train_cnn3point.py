@@ -60,9 +60,9 @@ def main():
     from matplotlib import pyplot as plt
     
     folder_name = "3A_CNN3p"
-    train_idx = 3
+    train_idx = 4
     resume = True
-    resume_idx = 2
+    resume_idx = 3
     numActions = 3
     obsSize = 12
     model_CFG = dict(
@@ -83,7 +83,7 @@ def main():
     os.makedirs(output_path, exist_ok=True)
     os.makedirs(f'{output_path}/weight', exist_ok=True)
     
-    env = SnakeEnv(seed=55, silent_mode=True, random_episode=True)
+    env = SnakeEnv(seed=100, silent_mode=True, random_episode=False)
 
     # Double DQN
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
