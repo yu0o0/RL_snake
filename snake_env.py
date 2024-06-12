@@ -87,7 +87,7 @@ class SnakeEnv(gym.Env):
             else:
                 reward -= 1
                 # reward -= 2 / info["snake_size"]
-            reward *= 0.05
+            reward *= 0.001
         #     # reward -= self.reward_step_counter * 0.005
 
         return state, reward, self.done, info
@@ -95,69 +95,12 @@ class SnakeEnv(gym.Env):
     def render(self):
         self.game.render()
 
-    # def get_action_mask(self):
-    #     return np.array([[self._check_action_validity(a) for a in range(self.action_space.n)]])
-
-    # # Check if the action is against the current direction of the snake or is ending the game.
-    # def _check_action_validity(self, action):
-    #     current_direction = self.game.direction
-    #     snake_list = self.game.snake
-    #     row, col = snake_list[0]
-    #     if action == 0:  # UP
-    #         if current_direction == "DOWN":
-    #             return False
-    #         else:
-    #             row -= 1
-
-    #     elif action == 1:  # LEFT
-    #         if current_direction == "RIGHT":
-    #             return False
-    #         else:
-    #             col -= 1
-
-    #     elif action == 2:  # RIGHT
-    #         if current_direction == "LEFT":
-    #             return False
-    #         else:
-    #             col += 1
-
-    #     elif action == 3:  # DOWN
-    #         if current_direction == "UP":
-    #             return False
-    #         else:
-    #             row += 1
-
-    #     # Check if snake collided with itself or the wall. Note that the tail of the snake would be poped if the snake did not eat food in the current step.
-    #     if (row, col) == self.game.food:
-    #         game_over = (
-    #             # The snake won't pop the last cell if it ate food.
-    #             (row, col) in snake_list
-    #             or row < 0
-    #             or row >= self.board_size
-    #             or col < 0
-    #             or col >= self.board_size
-    #         )
-    #     else:
-    #         game_over = (
-    #             # The snake will pop the last cell if it did not eat food.
-    #             (row, col) in snake_list[:-1]
-    #             or row < 0
-    #             or row >= self.board_size
-    #             or col < 0
-    #             or col >= self.board_size
-    #         )
-
-    #     if game_over:
-    #         return False
-    #     else:
-    #         return True
-
     def _generate_observation(self):
         img = np.zeros((self.game.board_size, self.game.board_size), dtype=np.uint8)
 
         # img[tuple(np.transpose(self.game.snake))] = np.linspace(
         #     255, 50, len(self.game.snake), dtype=np.uint8)
-        img[tuple(np.transpose(self.game.snake))] = 125
+        img[tuple(self.game.snake)] = 125
         img[tuple(self.game.snake[0])] = 255
         # img[tuple(self.game.snake[-1])] = 50
         img = np.expand_dims(img, axis=2)
@@ -193,10 +136,8 @@ class SnakeEnv(gym.Env):
             (dir_l and self.game.is_collision(point_d)),
             
             # Food location
-            self.game.food[0] - self.game.snake[0][0],  # food left
-            # self.game.food[0] > self.game.snake[0][0],  # food right
-            self.game.food[1] - self.game.snake[0][1],  # food up
-            # self.game.food[1] > self.game.snake[0][1]  # food down
+            self.game.food[0] - self.game.snake[0][0],
+            self.game.food[1] - self.game.snake[0][1],
 
             self.game.direction == "LEFT",  #蛇的面向(左)
             self.game.direction == "RIGHT", #蛇的面向(右)

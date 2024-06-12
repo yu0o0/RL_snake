@@ -11,9 +11,9 @@ def main():
     RENDER_DELAY = 0.2
     numActions = 3
     obsSize = 12
-    folder_name = "3A_CNN9p"
+    folder_name = "3A_CNN3p"
     # folder_name = "3A_FCN"
-    weight_idx = 1
+    weight_idx = 3
     weight_type = (
         "best"
         # "last"
@@ -21,7 +21,7 @@ def main():
     model_CFG = dict(
         numActions=numActions, 
         locPoint=11, 
-        imgPoint=9,
+        imgPoint=3,
         obsSize=obsSize,
         numFeaMap=10
     )
@@ -39,7 +39,7 @@ def main():
     policy_net.load_state_dict(torch.load(weight_path))
     policy_net.eval()
 
-    env = SnakeEnv(silent_mode=False, seed=55)
+    env = SnakeEnv(silent_mode=False, seed=100)
     loc, img = env.reset()
 
     sum_reward = 0
